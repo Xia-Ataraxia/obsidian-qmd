@@ -73,4 +73,20 @@ describe('VaultPathResolver', () => {
 		expect(resolver.resolve('test.md')).toBeNull();
 		expect(resolver.resolve('other.md')).toBe('other.md');
 	});
+
+	it('does not resolve colliding slugs to an arbitrary file', () => {
+		const resolver = new VaultPathResolver();
+		const files = [
+			makeTFile('Inbox/My Note.md'),
+			makeTFile('Inbox/My--Note.md'),
+			makeTFile('Inbox/Unique.md'),
+		];
+
+		resolver.rebuild(files as never[]);
+
+		expect(resolver.isAmbiguous('inbox/my-note.md')).toBe(true);
+		expect(resolver.isAmbiguous('inbox/unique.md')).toBe(false);
+		expect(resolver.resolve('inbox/my-note.md')).toBeNull();
+		expect(resolver.resolve('inbox/unique.md')).toBe('Inbox/Unique.md');
+	});
 });

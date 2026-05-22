@@ -268,6 +268,9 @@ export default class QmdPlugin extends Plugin {
     }
 
     this.pathResolver.rebuildIfDirty(this.app.vault.getFiles());
+    if (this.pathResolver.isAmbiguous(slugified)) {
+      return null;
+    }
     return this.pathResolver.resolve(slugified) ?? slugified;
   }
 

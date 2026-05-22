@@ -48,6 +48,7 @@ export function handelize(path: string): string {
  */
 export class VaultPathResolver {
 	private slugToReal = new Map<string, string>();
+	private ambiguousSlugs = new Set<string>();
 	private dirty = true;
 
 	markDirty(): void {
@@ -56,9 +57,18 @@ export class VaultPathResolver {
 
 	rebuild(files: FileRef[]): void {
 		this.slugToReal.clear();
+		this.ambiguousSlugs.clear();
 		for (const file of files) {
 			try {
 				const slug = handelize(file.path);
+				if (this.ambiguousSlugs.has(slug)) {
+					continue;
+				}
+				if (this.slugToReal.has(slug)) {
+					this.slugToReal.delete(slug);
+					this.ambiguousSlugs.add(slug);
+					continue;
+				}
 				this.slugToReal.set(slug, file.path);
 			} catch {
 				// Skip files that handelize() rejects (no valid content).
@@ -73,7 +83,14 @@ export class VaultPathResolver {
 		}
 	}
 
+	isAmbiguous(slugifiedPath: string): boolean {
+		return this.ambiguousSlugs.has(slugifiedPath);
+	}
+
 	resolve(slugifiedPath: string): string | null {
+		if (this.ambiguousSlugs.has(slugifiedPath)) {
+			return null;
+		}
 		return this.slugToReal.get(slugifiedPath) ?? null;
 	}
 }
