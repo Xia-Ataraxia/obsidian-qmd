@@ -1,6 +1,9 @@
 # QMD
 
-Local semantic search for Obsidian.
+Local semantic search, related notes, and autosync for Obsidian, powered by the local QMD CLI.
+
+[![Latest Release](https://img.shields.io/github/v/release/Xia-Ataraxia/obsidian-qmd?logo=github)](https://github.com/Xia-Ataraxia/obsidian-qmd/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 QMD bridges Obsidian with a local QMD daemon to deliver fast, privacy-first semantic search across your vault. All processing happens on your machine—no data leaves your device. Search by meaning instead of keywords, discover related notes automatically, and keep your notes indexed in real time.
 
@@ -19,7 +22,9 @@ This repo keeps plugin implementation local; shared family assets are limited to
 - **Wikilink insert** — add results directly to your active note
 - **Status bar** — real-time sync and indexing progress
 
-## Requirements
+## Installation
+
+### Requirements
 
 - **Obsidian** (desktop only; v0.15.0+)
 - **QMD daemon** — local binary installed and running on your system
@@ -27,12 +32,10 @@ This repo keeps plugin implementation local; shared family assets are limited to
   - The plugin auto-detects the QMD binary on `PATH` or configure a custom path in settings
 - **Active QMD collection** — a QMD collection matching your vault directory
 
-## Installation
-
 ### From Release (Recommended)
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/GoBeromsu/obsidian-qmd/releases/latest)
-2. Create `.obsidian/plugins/qmd/` in your vault
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/Xia-Ataraxia/obsidian-qmd/releases/latest)
+2. Create `.obsidian/plugins/obsidian-qmd/` in your vault
 3. Copy the three files into that directory
 4. Reload Obsidian
 5. Enable **QMD** in Settings > Community plugins
@@ -41,8 +44,8 @@ This repo keeps plugin implementation local; shared family assets are limited to
 
 ```bash
 cd <your-vault>/.obsidian/plugins
-git clone https://github.com/GoBeromsu/obsidian-qmd.git qmd
-cd qmd
+git clone https://github.com/Xia-Ataraxia/obsidian-qmd.git obsidian-qmd
+cd obsidian-qmd
 pnpm install
 pnpm build
 ```
@@ -74,12 +77,12 @@ QMD offers four complementary search modes:
 - **QMD: Open search** — Open the search modal (primary interface)
 - **QMD: Open related notes** — Show related notes for the active file
 - **QMD: Refresh related notes** — Manually refresh the related notes view
-- **QMD: Sync qmd now** — Trigger immediate indexing and embedding
-- **QMD: Run qmd update** — Index new and changed files
-- **QMD: Run qmd embed** — Generate embeddings for unindexed documents
-- **QMD: Re-scan qmd collections** — Auto-detect QMD collections for this vault
+- **QMD: Sync now** — Trigger immediate indexing and embedding
+- **QMD: Run update** — Index new and changed files
+- **QMD: Run embed** — Generate embeddings for unindexed documents
+- **QMD: Re-scan collections** — Auto-detect QMD collections for this vault
 
-## Configuration
+### Configuration
 
 Open **Settings > QMD** to customize behavior.
 
@@ -96,15 +99,9 @@ Open **Settings > QMD** to customize behavior.
 | Persist last mode | `true` | Remember the last-used search mode between sessions |
 | Show sync status bar | `true` | Display QMD status in the status bar |
 
-## Screenshots
+### Screenshots
 
 <!-- screenshot -->
-
-## Support
-
-If you find QMD useful, consider supporting the developer:
-
-[Buy me a coffee](https://buymeacoffee.com/gobeumsu9)
 
 ## Development
 
@@ -117,7 +114,7 @@ pnpm lint          # ESLint
 pnpm run ci        # build + lint + test
 ```
 
-## Tech Stack
+### Tech Stack
 
 | Category | Technology |
 |----------|------------|
@@ -128,7 +125,7 @@ pnpm run ci        # build + lint + test
 | Testing | Vitest |
 | Linting | ESLint + Husky + lint-staged |
 
-## Project Structure
+### Project Structure
 
 ```
 obsidian-qmd/
@@ -143,7 +140,7 @@ obsidian-qmd/
 └── manifest.json            # Obsidian plugin manifest
 ```
 
-## Contributing
+### Contributing
 
 1. Fork this repository
 2. Create a feature branch (`git checkout -b feature/your-feature`)
@@ -155,8 +152,14 @@ obsidian-qmd/
 
 MIT
 
-## Links
+### Support
 
-- [GitHub Repository](https://github.com/GoBeromsu/obsidian-qmd)
+If you find QMD useful, consider supporting the developer:
+
+[Buy me a coffee](https://buymeacoffee.com/gobeumsu9)
+
+### Links
+
+- [GitHub Repository](https://github.com/Xia-Ataraxia/obsidian-qmd)
 - [QMD Project](https://github.com/tobi/qmd)
 - [Obsidian Plugin Docs](https://docs.obsidian.md/)

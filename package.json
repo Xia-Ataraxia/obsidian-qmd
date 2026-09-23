@@ -48,5 +48,13 @@
     "src/**/*.ts": [
       "eslint --fix"
     ]
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xia-Ataraxia/obsidian-qmd.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Xia-Ataraxia/obsidian-qmd/issues"
+  },
+  "homepage": "https://github.com/Xia-Ataraxia/obsidian-qmd#readme"
 }
