@@ -313,10 +313,13 @@
 @keyframes qmd-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
-	.qmd-spinner,
+	.qmd-spinner {
+		animation-duration: 2.4s;
+	}
+
 	.qmd-skeleton-score,
 	.qmd-skeleton-title,
 	.qmd-skeleton-snippet {
-		animation: none;
+		animation-duration: 2.4s;
 	}
 }
