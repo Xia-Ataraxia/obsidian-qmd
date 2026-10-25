@@ -1,4 +1,4 @@
-import { type HoverPopover, MarkdownView, Menu, Modal, setIcon } from 'obsidian';
+import { type HoverPopover, MarkdownView, Menu, Modal, setIcon, setTooltip } from 'obsidian';
 import type QmdPlugin from '../main';
 import { SEARCH_MODE_DESCRIPTIONS, SEARCH_MODE_LABELS } from '../domain/settings';
 import { validateStructuredQueryDocument } from '../utils/parser';
@@ -91,9 +91,10 @@ export class QmdSearchModal extends Modal {
 
 		this.clearBtnEl = inputRow.createEl('button', {
 			cls: 'qmd-search-clear clickable-icon',
-			attr: { 'aria-label': 'Clear search', type: 'button' },
+			attr: { type: 'button' },
 		});
 		setIcon(this.clearBtnEl, 'x');
+		setTooltip(this.clearBtnEl, 'Clear search');
 		this.clearBtnEl.addEventListener('click', () => {
 			this.queryInputEl.value = '';
 			this.dirty = true;
