@@ -2,7 +2,7 @@
 
 Local QMD search, related notes, and autosync for your vault.
 
-![Searching the vault in the QMD search modal with keyword, semantic, and hybrid modes.](https://raw.githubusercontent.com/Xia-Ataraxia/obsidian-qmd/main/docs/assets/demo.webp)
+![QMD search modal in Exact match (keyword) mode on a small sample vault: typing "coffee" and then "marathon" returns the matching note with the term highlighted. Semantic and hybrid modes are not shown.](https://raw.githubusercontent.com/Xia-Ataraxia/obsidian-qmd/main/docs/assets/demo.webp)
 
 ## Features
 
