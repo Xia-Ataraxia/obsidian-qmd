@@ -33,7 +33,7 @@ describe('handelize', () => {
 });
 
 describe('VaultPathResolver', () => {
-	const makeTFile = (path: string) => ({ path }) as { path: string };
+	const makeTFile = (path: string) => ({ path });
 
 	it('resolves slugified paths to real vault paths', () => {
 		const resolver = new VaultPathResolver();
@@ -42,7 +42,7 @@ describe('VaultPathResolver', () => {
 			makeTFile('00. Inbox/Obsidian Plugin - Plugin Groups.md'),
 		];
 
-		resolver.rebuild(files as never[]);
+		resolver.rebuild(files);
 
 		expect(resolver.resolve('12-area/obsidian-plugin/obsidian-plugin.md'))
 			.toBe('12. Area/Obsidian Plugin/Obsidian Plugin.md');
@@ -60,7 +60,7 @@ describe('VaultPathResolver', () => {
 		const resolver = new VaultPathResolver();
 		const files = [makeTFile('test.md')];
 
-		resolver.rebuildIfDirty(files as never[]);
+		resolver.rebuildIfDirty(files);
 		expect(resolver.resolve('test.md')).toBe('test.md');
 
 		// After rebuild, not dirty — won't rebuild even with different files
@@ -82,7 +82,7 @@ describe('VaultPathResolver', () => {
 			makeTFile('Inbox/Unique.md'),
 		];
 
-		resolver.rebuild(files as never[]);
+		resolver.rebuild(files);
 
 		expect(resolver.isAmbiguous('inbox/my-note.md')).toBe(true);
 		expect(resolver.isAmbiguous('inbox/unique.md')).toBe(false);

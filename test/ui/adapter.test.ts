@@ -119,7 +119,7 @@ describe('QmdProcessAdapter', () => {
       throw error;
     });
 
-    const adapter = new QmdProcessAdapter('amd', execFileAsync as never);
+    const adapter = new QmdProcessAdapter('amd', execFileAsync);
 
     await expect(adapter.checkBinary()).rejects.toThrow(
       'QMD binary not found. Configured: "amd"',
