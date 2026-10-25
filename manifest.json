@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-qmd",
 	"name": "QMD",
-	"version": "1.4.17",
+	"version": "1.4.18",
 	"minAppVersion": "1.7.2",
 	"description": "Local QMD search, related notes, and autosync for your vault.",
 	"author": "Beomsu Koh",
