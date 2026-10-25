@@ -11,7 +11,7 @@ export function showResultContextMenu(plugin: QmdPlugin, result: QmdSearchResult
 
   const abstractFile = plugin.app.vault.getAbstractFileByPath(relativePath);
   if (!(abstractFile instanceof TFile)) {
-    plugin.notices.show('resolve_error', { path: relativePath });
+    plugin.notices.show('resolve_error', { name: plugin.getResultFallbackTitle(result) });
     return;
   }
 

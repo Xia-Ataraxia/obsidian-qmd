@@ -31,7 +31,7 @@ const NOTICE_CATALOG: NoticeCatalog = {
   embed_complete:         { template: 'qmd embed complete.', timeout: 4000 },
   embed_error:            { template: '{{ message }}', timeout: 6000 },
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
-  resolve_error:          { template: 'Could not resolve {{ path }}.', timeout: 4000, immutable: true },
+  resolve_error:          { template: 'Could not find "{{ name }}".', timeout: 4000, immutable: true },
   wikilink_copied:        { template: 'Copied link.', timeout: 3000, immutable: true },
   wikilink_copy_failed:   { template: 'Failed to copy link.', timeout: 4000, immutable: true },
   wikilink_inserted:      { template: 'Inserted link to {{ name }}.', timeout: 3000, immutable: true },
@@ -322,7 +322,7 @@ export default class QmdPlugin extends Plugin {
 
     const abstractFile = this.app.vault.getAbstractFileByPath(relativePath);
     if (!(abstractFile instanceof TFile)) {
-      this.notices.show('resolve_error', { path: relativePath });
+      this.notices.show('resolve_error', { name: this.getResultFallbackTitle(result) });
       return false;
     }
 
