@@ -86,7 +86,10 @@ export class QmdSettingTab extends PluginSettingTab {
         desc: 'Show notices again that were muted with the bell button.',
         visible: () => this.plugin.notices.listMuted().length > 0,
         action: () => {
-          void this.plugin.notices.unmuteAll().then(() => this.update());
+          void this.plugin.notices.unmuteAll().then(() => {
+            this.plugin.notices.show('notices_unmuted', {}, { timeout: 2000 });
+            this.update();
+          });
         },
       },
     ];
