@@ -334,7 +334,7 @@ export default class QmdPlugin extends Plugin {
   async refreshRelatedView(): Promise<void> {
     const view = QmdRelatedView.getView(this.app.workspace);
     if (view) {
-      await view.renderView();
+      await view.renderView(true);
     }
   }
 
