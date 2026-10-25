@@ -9,4 +9,4 @@ permissions:
 
 jobs:
   release:
-    uses: GoBeromsu/obsidian-boiler-template/.github/workflows/plugin-release.yml
+    uses: GoBeromsu/obsidian-boiler-template/.github/workflows/plugin-release.yml@main

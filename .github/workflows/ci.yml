@@ -10,4 +10,4 @@ permissions:
 
 jobs:
   ci:
-    uses: GoBeromsu/obsidian-boiler-template/.github/workflows/plugin-ci.yml
+    uses: GoBeromsu/obsidian-boiler-template/.github/workflows/plugin-ci.yml@main
