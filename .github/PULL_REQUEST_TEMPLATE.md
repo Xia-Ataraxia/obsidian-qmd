@@ -8,7 +8,7 @@
 
 ## Test Plan
 
-- [ ] `pnpm run ci` passes locally
+- [ ] `bun run ci` passes locally
 - [ ] Tested in Obsidian vault
 
 ## Checklist

@@ -10,7 +10,7 @@ interface AutoSyncCallbacks {
 
 export class AutoSyncController {
 	private debounceMs: number;
-	private timer: ReturnType<typeof setTimeout> | null = null;
+	private timer: number | null = null;
 	private running = false;
 	private dirty = false;
 	private rerun = false;
@@ -43,14 +43,14 @@ export class AutoSyncController {
 
 	private schedule(): void {
 		this.clearTimer();
-		this.timer = setTimeout(() => {
+		this.timer = window.setTimeout(() => {
 			void this.runIfNeeded();
 		}, this.debounceMs);
 	}
 
 	private clearTimer(): void {
 		if (!this.timer) return;
-		clearTimeout(this.timer);
+		window.clearTimeout(this.timer);
 		this.timer = null;
 	}
 

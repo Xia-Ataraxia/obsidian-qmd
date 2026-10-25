@@ -2,13 +2,19 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AutoSyncController } from '../../src/domain/auto-sync';
 
+function useFakeWindowTimers(): void {
+  vi.useFakeTimers();
+  vi.stubGlobal('window', { setTimeout, clearTimeout });
+}
+
 describe('AutoSyncController', () => {
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it('debounces repeated dirty events into one update/embed run', async () => {
-    vi.useFakeTimers();
+    useFakeWindowTimers();
     const calls: string[] = [];
     const controller = new AutoSyncController(100, {
       shouldRun: () => true,
@@ -31,7 +37,7 @@ describe('AutoSyncController', () => {
   });
 
   it('runs exactly one follow-up pass when changes arrive during an active sync', async () => {
-    vi.useFakeTimers();
+    useFakeWindowTimers();
     const calls: string[] = [];
     let releaseFirstUpdate = () => {};
     let updateRuns = 0;
@@ -64,7 +70,7 @@ describe('AutoSyncController', () => {
   });
 
   it('does not run embed when update fails', async () => {
-    vi.useFakeTimers();
+    useFakeWindowTimers();
     const phases: string[] = [];
     const controller = new AutoSyncController(25, {
       shouldRun: () => true,

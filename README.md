@@ -46,8 +46,8 @@ This repo keeps plugin implementation local; shared family assets are limited to
 cd <your-vault>/.obsidian/plugins
 git clone https://github.com/Xia-Ataraxia/obsidian-qmd.git obsidian-qmd
 cd obsidian-qmd
-pnpm install
-pnpm build
+bun install
+bun run build
 ```
 
 Reload Obsidian and enable the plugin under **Settings > Community plugins**.
@@ -106,12 +106,12 @@ Open **Settings > QMD** to customize behavior.
 ## Development
 
 ```bash
-pnpm install
-pnpm dev           # vault selection + esbuild watch + hot reload
-pnpm build         # TypeScript check + production build
-pnpm test          # Unit tests (Vitest)
-pnpm lint          # ESLint
-pnpm run ci        # build + lint + test
+bun install
+bun run dev         # esbuild watch into dist/
+bun run build       # production build into dist/
+bun run test         # Unit tests (Vitest)
+bun run lint          # ESLint
+bun run ci          # build + typecheck + lint + test
 ```
 
 ### Tech Stack
@@ -145,7 +145,7 @@ obsidian-qmd/
 1. Fork this repository
 2. Create a feature branch (`git checkout -b feature/your-feature`)
 3. Follow [Conventional Commits](https://www.conventionalcommits.org/)
-4. Run `pnpm run ci` to verify changes
+4. Run `bun run ci` to verify changes
 5. Submit a pull request
 
 ## License

@@ -1,157 +1,135 @@
-import { PluginSettingTab, Setting } from 'obsidian';
+import { PluginSettingTab, type Setting, type SettingDefinitionItem } from 'obsidian';
 import type QmdPlugin from '../main';
 import { SEARCH_MODE_LABELS } from '../domain/settings';
-import type { QmdSearchMode } from '../types';
+import type { QmdPluginSettings } from '../types';
+
+type SettingKey = keyof QmdPluginSettings;
+
+const TEXT_KEYS: SettingKey[] = ['qmdExecutablePath', 'collectionOverride'];
 
 export class QmdSettingTab extends PluginSettingTab {
+  private backendSetting: Setting | null = null;
+
   constructor(app: QmdPlugin['app'], private readonly plugin: QmdPlugin) {
     super(app, plugin);
   }
 
-  display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
-    containerEl.classList.add('qmd-settings');
-
-    new Setting(containerEl).setName('Backend').setHeading();
-    containerEl.createEl('p', {
-      text: this.plugin.describeBackend(),
-      cls: 'qmd-settings-summary',
-    });
-    containerEl.createEl('p', {
-      text: this.plugin.describeExecutableResolution(),
-      cls: 'qmd-settings-summary',
-    });
-
-    new Setting(containerEl)
-      .setName('Executable path')
-      .setDesc('Leave blank, "auto", or "qmd" to auto-detect npm, bun, nvm, and common path installs.')
-      .addText((text) => {
-        text.setPlaceholder('Auto');
-        text.setValue(this.plugin.settings.qmdExecutablePath);
-        text.onChange(async (value) => {
-          this.plugin.settings.qmdExecutablePath = value.trim();
-          await this.plugin.saveSettings();
-          await this.plugin.refreshBackendState();
-          this.display();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName('Collection override')
-      .setDesc('Optional qmd collection name to force instead of vault-path auto-detection.')
-      .addText((text) => {
-        text.setPlaceholder('Obsidian');
-        text.setValue(this.plugin.settings.collectionOverride);
-        text.onChange(async (value) => {
-          this.plugin.settings.collectionOverride = value.trim();
-          await this.plugin.saveSettings();
-          await this.plugin.refreshBackendState();
-          this.display();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName('Default search mode')
-      .setDesc('Mode selected when the search modal opens.')
-      .addDropdown((dropdown) => {
-        for (const [mode, label] of Object.entries(SEARCH_MODE_LABELS)) {
-          dropdown.addOption(mode, label);
-        }
-        dropdown.setValue(this.plugin.settings.defaultSearchMode);
-        dropdown.onChange(async (value) => {
-          this.plugin.settings.defaultSearchMode = value as QmdSearchMode;
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName('Search result limit')
-      .setDesc('Number of results shown in the search modal.')
-      .addText((text) => {
-        text.setPlaceholder('8');
-        text.setValue(String(this.plugin.settings.previewResultLimit));
-        text.onChange(async (value) => {
-          this.plugin.settings.previewResultLimit = this.parsePositiveInt(value, this.plugin.settings.previewResultLimit);
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName('Related note limit')
-      .setDesc('Number of related notes shown in the sidebar view.')
-      .addText((text) => {
-        text.setPlaceholder('8');
-        text.setValue(String(this.plugin.settings.relatedResultLimit));
-        text.onChange(async (value) => {
-          this.plugin.settings.relatedResultLimit = this.parsePositiveInt(value, this.plugin.settings.relatedResultLimit);
-          await this.plugin.saveSettings();
-          await this.plugin.refreshRelatedView();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName('Auto-sync')
-      .setDesc('Run qmd update and qmd embed after vault changes.')
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.settings.autoSyncEnabled);
-        toggle.onChange(async (value) => {
-          this.plugin.settings.autoSyncEnabled = value;
-          await this.plugin.saveSettings();
-          this.plugin.refreshStatusBar();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName('Auto-sync debounce (ms)')
-      .setDesc('Wait time after the last change before running qmd update and qmd embed.')
-      .addText((text) => {
-        text.setPlaceholder('7000');
-        text.setValue(String(this.plugin.settings.autoSyncDebounceMs));
-        text.onChange(async (value) => {
-          this.plugin.settings.autoSyncDebounceMs = this.parsePositiveInt(value, this.plugin.settings.autoSyncDebounceMs);
-          this.plugin.configureAutoSync();
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName('Persist last mode')
-      .setDesc('Remember the last mode used in the search modal.')
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.settings.persistLastMode);
-        toggle.onChange(async (value) => {
-          this.plugin.settings.persistLastMode = value;
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName('Show mode selector')
-      .setDesc('Display the search mode pill in the search modal.')
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.settings.showModeSelector);
-        toggle.onChange(async (value) => {
-          this.plugin.settings.showModeSelector = value;
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName('Show sync status bar item')
-      .setDesc('Display sync status in the Obsidian status bar.')
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.settings.showSyncStatusBar);
-        toggle.onChange(async (value) => {
-          this.plugin.settings.showSyncStatusBar = value;
-          await this.plugin.saveSettings();
-          this.plugin.refreshStatusBar();
-        });
-      });
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        type: 'group',
+        heading: 'Backend',
+        items: [
+          {
+            name: 'Status',
+            searchable: false,
+            render: (setting) => {
+              this.backendSetting = setting;
+              this.renderBackendStatus();
+              return () => { this.backendSetting = null; };
+            },
+          },
+          {
+            name: 'Executable path',
+            desc: 'Leave blank, "auto", or "qmd" to auto-detect npm, bun, nvm, and common path installs.',
+            control: { type: 'text', key: 'qmdExecutablePath', placeholder: 'Auto' },
+          },
+          {
+            name: 'Collection override',
+            desc: 'Optional qmd collection name to force instead of vault-path auto-detection.',
+            control: { type: 'text', key: 'collectionOverride', placeholder: 'Obsidian' },
+          },
+        ],
+      },
+      {
+        name: 'Default search mode',
+        desc: 'Mode selected when the search modal opens.',
+        control: { type: 'dropdown', key: 'defaultSearchMode', options: SEARCH_MODE_LABELS },
+      },
+      {
+        name: 'Search result limit',
+        desc: 'Number of results shown in the search modal.',
+        control: { type: 'number', key: 'previewResultLimit', placeholder: '8', min: 1, step: 1 },
+      },
+      {
+        name: 'Related note limit',
+        desc: 'Number of related notes shown in the sidebar view.',
+        control: { type: 'number', key: 'relatedResultLimit', placeholder: '8', min: 1, step: 1 },
+      },
+      {
+        name: 'Auto-sync',
+        desc: 'Run qmd update and qmd embed after vault changes.',
+        control: { type: 'toggle', key: 'autoSyncEnabled' },
+      },
+      {
+        name: 'Auto-sync debounce (ms)',
+        desc: 'Wait time after the last change before running qmd update and qmd embed.',
+        control: { type: 'number', key: 'autoSyncDebounceMs', placeholder: '7000', min: 1, step: 1 },
+      },
+      {
+        name: 'Persist last mode',
+        desc: 'Remember the last mode used in the search modal.',
+        control: { type: 'toggle', key: 'persistLastMode' },
+      },
+      {
+        name: 'Show mode selector',
+        desc: 'Display the search mode pill in the search modal.',
+        control: { type: 'toggle', key: 'showModeSelector' },
+      },
+      {
+        name: 'Show sync status bar item',
+        desc: 'Display sync status in the Obsidian status bar.',
+        control: { type: 'toggle', key: 'showSyncStatusBar' },
+      },
+    ];
   }
 
-  private parsePositiveInt(value: string, fallback: number): number {
-    const parsed = Number.parseInt(value.trim(), 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  getControlValue(key: string): unknown {
+    return this.plugin.settings[key as SettingKey];
+  }
+
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    const settings = this.plugin.settings as unknown as Record<string, unknown>;
+    settings[key] = this.normalize(key as SettingKey, value, settings[key]);
+    await this.plugin.saveSettings();
+    await this.applySideEffects(key as SettingKey);
+  }
+
+  private normalize(key: SettingKey, value: unknown, previous: unknown): unknown {
+    if (TEXT_KEYS.includes(key)) return String(value).trim();
+    if (typeof previous === 'number') {
+      const parsed = Math.trunc(Number(value));
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : previous;
+    }
+    return value;
+  }
+
+  private async applySideEffects(key: SettingKey): Promise<void> {
+    switch (key) {
+      case 'qmdExecutablePath':
+      case 'collectionOverride':
+        await this.plugin.refreshBackendState();
+        this.renderBackendStatus();
+        break;
+      case 'relatedResultLimit':
+        await this.plugin.refreshRelatedView();
+        break;
+      case 'autoSyncDebounceMs':
+        this.plugin.configureAutoSync();
+        break;
+      case 'autoSyncEnabled':
+        this.plugin.refreshStatusBar();
+        break;
+      case 'showSyncStatusBar':
+        this.plugin.refreshStatusBar();
+        break;
+    }
+  }
+
+  private renderBackendStatus(): void {
+    this.backendSetting?.setDesc(createFragment((frag) => {
+      frag.createDiv({ text: this.plugin.describeBackend() });
+      frag.createDiv({ text: this.plugin.describeExecutableResolution() });
+    }));
   }
 }
