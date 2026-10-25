@@ -284,9 +284,11 @@ export default class QmdPlugin extends Plugin {
     const cache = this.app.metadataCache.getFileCache(file);
     const source = buildRelatedQuerySource(file.path, content, cache);
     const query = buildRelatedQueryDocument(source);
-    const results = await this.adapter.structuredSearch(query, collection.name, this.settings.relatedResultLimit);
+    const limit = this.settings.relatedResultLimit;
+    // The note itself usually ranks first, so fetch one extra to fill the limit after dropping it.
+    const results = await this.adapter.structuredSearch(query, collection.name, limit + 1);
 
-    return results.filter((result) => this.toVaultRelativePath(result.file) !== file.path);
+    return results.filter((result) => this.toVaultRelativePath(result.file) !== file.path).slice(0, limit);
   }
 
   toVaultRelativePath(value: string): string | null {
