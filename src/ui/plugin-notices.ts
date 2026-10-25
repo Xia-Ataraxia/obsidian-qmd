@@ -8,6 +8,7 @@ import type {
 
 const BUILTIN_TEMPLATES: Record<string, string> = {
   notice_muted: 'Notice muted. Undo in settings.',
+  notices_unmuted: 'Notices unmuted.',
 };
 
 export class PluginNotices {
