@@ -4,7 +4,7 @@ import { formatSnippet } from '../utils/parser';
 import { highlightSnippet } from './highlight';
 import { extractQueryTerms } from '../utils/parser';
 import type { QmdOpenTarget, QmdSearchResult } from '../types';
-import { showResultContextMenu } from './result-actions';
+import { buildResultLink, showResultContextMenu } from './result-actions';
 
 type ScoreTier = 'high' | 'medium' | 'low';
 
@@ -39,7 +39,6 @@ export function renderResultItem(opts: RenderResultOptions): HTMLElement {
 	const title = result.title || plugin.getResultFallbackTitle(result);
 	const relativePath = plugin.toVaultRelativePath(result.file) ?? result.file;
 	const breadcrumb = formatBreadcrumb(relativePath);
-	const linktext = relativePath.replace(/\.md$/, '');
 
 	const el = container.createDiv({
 		cls: 'qmd-result-item',
@@ -118,7 +117,7 @@ export function renderResultItem(opts: RenderResultOptions): HTMLElement {
 
 	// Drag support
 	el.addEventListener('dragstart', (event) => {
-		event.dataTransfer?.setData('text/plain', `[[${linktext}]]`);
+		event.dataTransfer?.setData('text/plain', buildResultLink(plugin, relativePath));
 	});
 
 	// Keyboard nav on focused items (for related view)

@@ -33,8 +33,8 @@ const NOTICE_CATALOG: NoticeCatalog = {
   open_error:             { template: '{{ message }}', timeout: 5000, immutable: true },
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
   resolve_error:          { template: 'Could not resolve {{ path }}.', timeout: 4000, immutable: true },
-  wikilink_copied:        { template: 'Copied wikilink.', timeout: 3000, immutable: true },
-  wikilink_copy_failed:   { template: 'Failed to copy wikilink.', timeout: 4000, immutable: true },
+  wikilink_copied:        { template: 'Copied link.', timeout: 3000, immutable: true },
+  wikilink_copy_failed:   { template: 'Failed to copy link.', timeout: 4000, immutable: true },
   wikilink_inserted:      { template: 'Inserted {{ wikilink }}', timeout: 3000, immutable: true },
   no_active_editor:       { template: 'No active editor to insert link.', timeout: 4000, immutable: true },
 };

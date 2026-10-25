@@ -4,6 +4,7 @@ import { SEARCH_MODE_DESCRIPTIONS, SEARCH_MODE_LABELS } from '../domain/settings
 import { validateStructuredQueryDocument } from '../utils/parser';
 import type { QmdOpenTarget, QmdSearchMode, QmdSearchResult } from '../types';
 import { renderResultItem } from './result-renderer';
+import { buildResultLink } from './result-actions';
 
 const AUTO_SEARCH_DEBOUNCE_MS = 180;
 const SEARCH_MODE_ORDER: QmdSearchMode[] = ['keyword', 'semantic', 'hybrid', 'advanced'];
@@ -504,15 +505,15 @@ export class QmdSearchModal extends Modal {
 			return;
 		}
 
-		const wikilink = `[[${relativePath.replace(/\.md$/, '')}]]`;
 		const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!markdownView) {
 			this.plugin.notices.show('no_active_editor');
 			return;
 		}
 
-		markdownView.editor.replaceSelection(wikilink);
-		this.plugin.notices.show('wikilink_inserted', { wikilink });
+		const link = buildResultLink(this.plugin, relativePath);
+		markdownView.editor.replaceSelection(link);
+		this.plugin.notices.show('wikilink_inserted', { wikilink: link });
 	}
 
 	private renderInstructions(): void {
