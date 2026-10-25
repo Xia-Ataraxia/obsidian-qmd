@@ -88,7 +88,8 @@ export default class QmdPlugin extends Plugin {
 
     this.addSettingTab(new QmdSettingTab(this.app, this));
     this.registerCommands();
-    this.registerVaultWatchers();
+    // Vault "create" fires for every existing file during startup; only watch changes after layout is ready.
+    this.app.workspace.onLayoutReady(() => this.registerVaultWatchers());
 
     this.statusBarEl = this.addStatusBarItem();
     this.statusBarEl.addClass('qmd-status-bar');
