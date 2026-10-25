@@ -120,17 +120,20 @@
 	transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 .qmd-search-input-row:focus-within {
-	border-color: var(--interactive-accent);
-	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 20%, transparent);
+	border-color: var(--background-modifier-border-focus);
+	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 .qmd-search-icon { color: var(--interactive-accent); }
-.qmd-search-input,
+/* Out-specify Obsidian's input[type='text'] chrome so the row draws the only focus ring. */
+.qmd-search-input-row .qmd-search-input,
+.qmd-search-input-row .qmd-search-input:focus,
 .qmd-advanced-input {
 	width: 100%;
 	border: none;
 	background: transparent;
 	color: var(--text-normal);
 	outline: none;
+	box-shadow: none;
 	font: inherit;
 }
 .qmd-search-input { font-size: var(--font-ui-medium); line-height: 1.45; }
