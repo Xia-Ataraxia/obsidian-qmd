@@ -1,5 +1,5 @@
 export function highlightSnippet(snippet: string, queryTerms: string[]): DocumentFragment {
-	const fragment = document.createDocumentFragment();
+	const fragment = createFragment();
 
 	if (queryTerms.length === 0) {
 		fragment.appendChild(document.createTextNode(snippet));
@@ -18,7 +18,7 @@ export function highlightSnippet(snippet: string, queryTerms: string[]): Documen
 			fragment.appendChild(document.createTextNode(snippet.slice(lastIndex, match.index)));
 		}
 
-		const mark = document.createElement('mark');
+		const mark = createEl('mark');
 		mark.textContent = match[0];
 		fragment.appendChild(mark);
 		lastIndex = pattern.lastIndex;

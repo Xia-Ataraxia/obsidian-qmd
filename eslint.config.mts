@@ -120,5 +120,5 @@ export default tseslint.config(
 		},
 	},
 	// Node tooling and root configs are not plugin code and sit outside tsconfig (type-aware rules need it).
-	globalIgnores(['**/main.js', 'dist/', 'node_modules/', 'coverage/', 'scripts/', '**/*.mjs', '*.config.ts', '*.config.mts']),
+	globalIgnores(['dist/', 'node_modules/', 'coverage/', 'scripts/', '**/*.mjs', '*.config.ts', '*.config.mts']),
 );

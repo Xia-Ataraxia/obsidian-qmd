@@ -1,31 +1,26 @@
 # obsidian-qmd
 
-Obsidian plugin for local QMD search, related notes, and auto-sync.
-
-## Repo posture
-
-- Keep plugin implementation local to this repo.
-- Shared family assets may cover contracts, docs, and harness skeletons only.
-- Do not reintroduce a `src/shared/` implementation layer by default.
+Obsidian plugin wrapping the local QMD CLI: search modal, related-notes view, autosync. Root `AGENTS.md` rules apply.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `pnpm dev` | Build/watch and hot reload into an Obsidian vault |
-| `pnpm build` | Type-check and production bundle |
-| `pnpm lint` | ESLint |
-| `pnpm test` | Vitest |
-| `pnpm run ci` | Build + lint + test |
-| `pnpm release:patch` | Run CI, bump version, push commit/tag |
+| `bun run dev` | esbuild watch into `dist/` |
+| `bun run build` | production build into `dist/` |
+| `bun run ci` | build + typecheck + lint + test |
+| `bun run release <bump>` | opens a release PR via the shared boiler-template script (CI-only tagging) |
 
-## Release flow
+## Architecture
 
-`pnpm release:patch|minor|major` handles the supported release path:
+- `src/main.ts`: lifecycle, commands, vault watchers, status bar, backend state.
+- `src/domain/`: pure logic (auto-sync controller, path resolver, settings defaults). No `obsidian` imports.
+- `src/utils/`, `src/types/`: query builder, output parser, shared types. No `obsidian` imports.
+- `src/ui/`: process adapter for the `qmd` CLI, search modal, related view, result rendering, notices, logger, declarative settings tab (`getSettingDefinitions()`, requires Obsidian 1.13.0).
 
-1. `pnpm run ci`
-2. `pnpm version <level>` updates `package.json`, `manifest.json`, and `versions.json`
-3. `postversion` pushes the commit and tag
-4. GitHub Actions publishes the release artifacts
+## Gotchas
 
-Prefer the scripted release flow over manual tags or ad-hoc packaging.
+- Manifest id is `obsidian-qmd` (published; never change it).
+- Desktop only: spawns the `qmd` executable via the process adapter.
+- `AutoSyncController` uses `window.setTimeout`; node tests stub `window` after `vi.useFakeTimers()`.
+- CI/release workflows are thin callers of `GoBeromsu/obsidian-boiler-template`.

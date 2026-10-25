@@ -39,8 +39,8 @@ const NOTICE_CATALOG: NoticeCatalog = {
 };
 
 export default class QmdPlugin extends Plugin {
-  settings: QmdPluginSettings;
-  adapter: QmdProcessAdapter;
+  settings!: QmdPluginSettings;
+  adapter!: QmdProcessAdapter;
   collections: QmdCollectionInfo[] = [];
   activeCollection: QmdCollectionInfo | null = null;
   syncState: SyncState = { phase: 'idle', message: 'QMD ready' };
