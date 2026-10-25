@@ -1,6 +1,6 @@
 {
 	"id": "qmd",
-	"name": "QMD",
+	"name": "QMD Search",
 	"version": "1.4.19",
 	"minAppVersion": "1.13.0",
 	"description": "Local QMD search, related notes, and autosync for your vault.",
