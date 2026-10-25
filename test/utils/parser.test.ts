@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildHighlightPattern,
+  extractQueryTerms,
   formatSnippet,
   parseCollectionList,
   parseCollectionShow,
@@ -89,4 +91,15 @@ describe('qmd parser helpers', () => {
       error: 'Each line must start with lex:, vec:, hyde:, or intent:.',
     });
   });
+});
+
+describe('highlight terms', () => {
+	it('keeps two-character CJK words and drops short ASCII words', () => {
+		expect(extractQueryTerms('커피 is 핸드드립')).toEqual(['커피', '핸드드립']);
+	});
+
+	it('matches term starts in non-ASCII text', () => {
+		const pattern = buildHighlightPattern(['커피', 'brew']);
+		expect('핸드드립 커피는 brewing 아메리카노커피'.match(pattern)).toEqual(['커피', 'brew']);
+	});
 });

@@ -1,3 +1,5 @@
+import { buildHighlightPattern } from '../utils/parser';
+
 export function highlightSnippet(snippet: string, queryTerms: string[]): DocumentFragment {
 	const fragment = createFragment();
 
@@ -6,8 +8,7 @@ export function highlightSnippet(snippet: string, queryTerms: string[]): Documen
 		return fragment;
 	}
 
-	const escaped = queryTerms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-	const pattern = new RegExp(`\\b(${escaped.join('|')})`, 'gi');
+	const pattern = buildHighlightPattern(queryTerms);
 
 	let lastIndex = 0;
 	for (;;) {
