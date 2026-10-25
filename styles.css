@@ -1,5 +1,36 @@
 /* Status bar */
 .qmd-status-bar--hidden { display: none; }
+.qmd-status-bar { color: var(--text-muted); transition: color 0.2s ease; }
+.qmd-status-bar::before {
+	content: '';
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	margin-right: var(--size-2-2);
+	border-radius: 50%;
+	background: var(--text-faint);
+	transition: background-color 0.2s ease;
+}
+.qmd-status-bar.is-setup { color: var(--text-warning); }
+.qmd-status-bar.is-setup::before { background: var(--text-warning); }
+.qmd-status-bar.is-syncing,
+.qmd-status-bar.is-embedding { color: var(--text-accent); }
+.qmd-status-bar.is-syncing::before,
+.qmd-status-bar.is-embedding::before {
+	background: var(--text-accent);
+	animation: qmd-status-pulse 1.2s ease-in-out infinite;
+}
+.qmd-status-bar.is-error { color: var(--text-error); }
+.qmd-status-bar.is-error::before { background: var(--text-error); }
+.qmd-status-bar--swap { animation: qmd-status-swap 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+@keyframes qmd-status-pulse { 50% { opacity: 0.25; transform: scale(0.8); } }
+@keyframes qmd-status-swap { from { opacity: 0; transform: translateY(3px); } }
+@keyframes qmd-status-fade { from { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) {
+	.qmd-status-bar--swap { animation: qmd-status-fade 0.4s ease; }
+	.qmd-status-bar.is-syncing::before,
+	.qmd-status-bar.is-embedding::before { animation: qmd-status-fade 1.8s ease-in-out infinite alternate; }
+}
 
 /* Plugin notices */
 .plugin-notice {
