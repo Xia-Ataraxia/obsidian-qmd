@@ -91,6 +91,7 @@ export default class QmdPlugin extends Plugin {
     this.registerVaultWatchers();
 
     this.statusBarEl = this.addStatusBarItem();
+    this.statusBarEl.addClass('qmd-status-bar');
     this.refreshStatusBar();
 
     await this.refreshBackendState();
@@ -228,24 +229,37 @@ export default class QmdPlugin extends Plugin {
 
     let label = 'QMD';
     let detail = this.describeBackend();
+    let state = 'idle';
 
     if (this.setupMessage) {
       label = 'QMD: Setup';
+      state = 'setup';
     } else if (this.syncState.phase === 'syncing') {
       label = 'QMD: Syncing';
+      state = 'syncing';
       detail = this.syncState.message;
     } else if (this.syncState.phase === 'embedding') {
       label = 'QMD: Embedding';
+      state = 'embedding';
       detail = this.syncState.message;
     } else if (this.syncState.phase === 'error') {
       label = 'QMD: Error';
+      state = 'error';
       detail = this.syncState.error ?? this.syncState.message;
     } else if (this.activeCollection) {
       label = `QMD: ${this.activeCollection.name}`;
     }
 
-    this.statusBarEl.textContent = label;
+    const changed = this.statusBarEl.getText() !== label;
+    this.statusBarEl.setText(label);
     this.statusBarEl.title = detail;
+    this.statusBarEl.removeClasses(['is-setup', 'is-syncing', 'is-embedding', 'is-error']);
+    if (state !== 'idle') this.statusBarEl.addClass(`is-${state}`);
+    if (changed) {
+      this.statusBarEl.removeClass('qmd-status-bar--swap');
+      void this.statusBarEl.offsetWidth;
+      this.statusBarEl.addClass('qmd-status-bar--swap');
+    }
   }
 
   async search(mode: QmdSearchMode, query: string): Promise<QmdSearchResult[]> {
