@@ -30,7 +30,6 @@ const NOTICE_CATALOG: NoticeCatalog = {
   update_error:           { template: '{{ message }}', timeout: 6000 },
   embed_complete:         { template: 'qmd embed complete.', timeout: 4000 },
   embed_error:            { template: '{{ message }}', timeout: 6000 },
-  open_error:             { template: '{{ message }}', timeout: 5000, immutable: true },
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
   resolve_error:          { template: 'Could not resolve {{ path }}.', timeout: 4000, immutable: true },
   wikilink_copied:        { template: 'Copied link.', timeout: 3000, immutable: true },
@@ -313,15 +312,18 @@ export default class QmdPlugin extends Plugin {
     return mapped.split('/').pop()?.replace(/\.md$/, '') ?? result.file;
   }
 
-  async openSearchResult(result: QmdSearchResult, target: QmdOpenTarget = 'current'): Promise<void> {
+  // Reports failures as notices so every caller (modal, related view, context menu) gets feedback.
+  async openSearchResult(result: QmdSearchResult, target: QmdOpenTarget = 'current'): Promise<boolean> {
     const relativePath = this.toVaultRelativePath(result.file);
     if (!relativePath) {
-      throw new Error('Search result does not map to the current vault.');
+      this.notices.show('vault_map_error');
+      return false;
     }
 
     const abstractFile = this.app.vault.getAbstractFileByPath(relativePath);
     if (!(abstractFile instanceof TFile)) {
-      throw new Error(`Could not open note: ${relativePath}`);
+      this.notices.show('resolve_error', { path: relativePath });
+      return false;
     }
 
     const leaf = target === 'tab'
@@ -331,6 +333,7 @@ export default class QmdPlugin extends Plugin {
         : this.app.workspace.getMostRecentLeaf() ?? this.app.workspace.getLeaf(false);
 
     await leaf.openFile(abstractFile);
+    return true;
   }
 
   async refreshRelatedView(): Promise<void> {

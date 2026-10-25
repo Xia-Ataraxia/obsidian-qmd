@@ -277,10 +277,7 @@ export class QmdRelatedView extends ItemView {
 				sourceId: QMD_RELATED_VIEW_TYPE,
 				hoverParent: this,
 				onOpen: (_i, target) => {
-					void this.plugin.openSearchResult(result, target).catch((error: unknown) => {
-						const message = error instanceof Error ? error.message : String(error);
-						this.plugin.notices.show('open_error', { message });
-					});
+					void this.plugin.openSearchResult(result, target);
 				},
 			});
 		}
