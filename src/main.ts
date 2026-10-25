@@ -1,6 +1,7 @@
 import { MarkdownView, Plugin, TAbstractFile, TFile } from 'obsidian';
 import { AutoSyncController } from './domain/auto-sync';
 import { VaultPathResolver } from './domain/path-resolver';
+import { parseLegacyData } from './domain/legacy-data';
 import { DEFAULT_SETTINGS } from './domain/settings';
 import type {
   QmdCollectionInfo,
@@ -102,7 +103,23 @@ export default class QmdPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = { ...DEFAULT_SETTINGS, ...(await this.loadData() as Partial<typeof DEFAULT_SETTINGS>) };
+    const stored = (await this.loadData() as Partial<typeof DEFAULT_SETTINGS> | null) ?? await this.adoptLegacyData();
+    this.settings = { ...DEFAULT_SETTINGS, ...stored };
+  }
+
+  // One-time adoption of data saved under the pre-rename plugin id "obsidian-qmd"; the old folder is left untouched.
+  private async adoptLegacyData(): Promise<Partial<typeof DEFAULT_SETTINGS> | null> {
+    const path = `${this.app.vault.configDir}/plugins/obsidian-qmd/data.json`;
+    const adapter = this.app.vault.adapter;
+    if (!(await adapter.exists(path))) {
+      return null;
+    }
+
+    const legacy = parseLegacyData(await adapter.read(path));
+    if (legacy) {
+      await this.saveData(legacy);
+    }
+    return legacy;
   }
 
   async saveSettings(): Promise<void> {
