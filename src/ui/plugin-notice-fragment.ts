@@ -10,22 +10,13 @@ interface BuildNoticeFragmentOptions {
 }
 
 export function buildNoticeFragment(opts: BuildNoticeFragmentOptions): DocumentFragment {
-  const fragment = document.createDocumentFragment();
-  const wrapper = document.createElement('div');
-  wrapper.className = 'plugin-notice';
+  const fragment = createFragment();
+  const wrapper = createDiv({ cls: 'plugin-notice' });
 
-  const head = document.createElement('p');
-  head.className = 'plugin-notice-head';
-  head.textContent = `[${opts.prefix}]`;
-  wrapper.appendChild(head);
+  wrapper.appendChild(createEl('p', { cls: 'plugin-notice-head', text: `[${opts.prefix}]` }));
+  wrapper.appendChild(createEl('p', { cls: 'plugin-notice-content', text: opts.text }));
 
-  const body = document.createElement('p');
-  body.className = 'plugin-notice-content';
-  body.textContent = opts.text;
-  wrapper.appendChild(body);
-
-  const actions = document.createElement('div');
-  actions.className = 'plugin-notice-actions';
+  const actions = createDiv({ cls: 'plugin-notice-actions' });
 
   if (opts.button?.text && typeof opts.button.callback === 'function') {
     actions.appendChild(createActionButton(opts.button.text, opts.button.callback));
@@ -44,18 +35,13 @@ export function buildNoticeFragment(opts: BuildNoticeFragmentOptions): DocumentF
 }
 
 function createActionButton(text: string, callback: () => void): HTMLButtonElement {
-  const button = document.createElement('button');
-  button.className = 'plugin-notice-btn';
-  button.type = 'button';
-  button.textContent = text;
+  const button = createEl('button', { cls: 'plugin-notice-btn', type: 'button', text });
   button.addEventListener('click', callback);
   return button;
 }
 
 function createMuteButton(id: string, onMute: (id: string) => void): HTMLButtonElement {
-  const button = document.createElement('button');
-  button.className = 'plugin-notice-btn plugin-notice-btn--mute';
-  button.type = 'button';
+  const button = createEl('button', { cls: 'plugin-notice-btn plugin-notice-btn--mute', type: 'button' });
   button.setAttribute('aria-label', `Mute notice: ${id}`);
   setIcon(button, 'bell-off');
   button.addEventListener('click', () => onMute(id));

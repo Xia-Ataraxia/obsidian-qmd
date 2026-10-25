@@ -8,7 +8,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:build": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-    "lint": "eslint . --ignore-pattern '*.mjs' --ignore-pattern '*.mts' --ignore-pattern 'scripts/**' --ignore-pattern 'tooling/**'",
+    "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "ci": "pnpm run build && pnpm run lint && pnpm run test",

@@ -82,10 +82,18 @@ function installDom(): void {
     addEventListener(_event: string, _callback: () => void): void {}
   }
 
-  (globalThis as Record<string, unknown>).DocumentFragment = FakeDocumentFragment;
-  (globalThis as Record<string, unknown>).HTMLElement = FakeElement;
-  (globalThis as Record<string, unknown>).document = {
-    createDocumentFragment: () => new FakeDocumentFragment(),
-    createElement: () => new FakeElement(),
+  const g = globalThis as Record<string, unknown>;
+  g.window = globalThis;
+  g.DocumentFragment = FakeDocumentFragment;
+  g.HTMLElement = FakeElement;
+  g.createFragment = () => new FakeDocumentFragment();
+  const make = (o?: { cls?: string; type?: string; text?: string }) => {
+    const el = new FakeElement();
+    el.className = o?.cls ?? '';
+    el.type = o?.type ?? '';
+    el.textContent = o?.text ?? '';
+    return el;
   };
+  g.createDiv = (o?: { cls?: string }) => make(o);
+  g.createEl = (_tag: string, o?: { cls?: string; type?: string; text?: string }) => make(o);
 }

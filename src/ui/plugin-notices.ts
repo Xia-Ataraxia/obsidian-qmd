@@ -12,7 +12,7 @@ const BUILTIN_TEMPLATES: Record<string, string> = {
 
 export class PluginNotices {
   private readonly active = new Map<string, Notice>();
-  private readonly activeTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly activeTimers = new Map<string, number>();
 
   constructor(
     private readonly plugin: PluginNoticesHost,
@@ -64,7 +64,7 @@ export class PluginNotices {
 
     const timer = this.activeTimers.get(id);
     if (timer !== undefined) {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
       this.activeTimers.delete(id);
     }
   }
@@ -154,12 +154,12 @@ export class PluginNotices {
   private scheduleCleanup(id: string, timeout: number): void {
     const existing = this.activeTimers.get(id);
     if (existing !== undefined) {
-      clearTimeout(existing);
+      window.clearTimeout(existing);
       this.activeTimers.delete(id);
     }
     if (timeout <= 0) return;
 
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       this.active.delete(id);
       this.activeTimers.delete(id);
     }, timeout + 50);
