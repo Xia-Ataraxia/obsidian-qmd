@@ -20,7 +20,7 @@ Obsidian plugin wrapping the local QMD CLI: search modal, related-notes view, au
 
 ## Gotchas
 
-- Manifest id is `obsidian-qmd` (published; never change it).
+- Manifest id is `qmd` (matches the Community entry; never change it). On first load, data is adopted once from the legacy `plugins/obsidian-qmd/data.json` if present.
 - Desktop only: spawns the `qmd` executable via the process adapter.
 - `AutoSyncController` uses `window.setTimeout`; node tests stub `window` after `vi.useFakeTimers()`.
 - CI/release workflows are thin callers of `GoBeromsu/obsidian-boiler-template`.

@@ -35,7 +35,7 @@ This repo keeps plugin implementation local; shared family assets are limited to
 ### From Release (Recommended)
 
 1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/Xia-Ataraxia/obsidian-qmd/releases/latest)
-2. Create `.obsidian/plugins/obsidian-qmd/` in your vault
+2. Create `.obsidian/plugins/qmd/` in your vault
 3. Copy the three files into that directory
 4. Reload Obsidian
 5. Enable **QMD** in Settings > Community plugins
