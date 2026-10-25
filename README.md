@@ -99,10 +99,6 @@ Open **Settings > QMD** to customize behavior.
 | Persist last mode | `true` | Remember the last-used search mode between sessions |
 | Show sync status bar | `true` | Display QMD status in the status bar |
 
-### Screenshots
-
-<!-- screenshot -->
-
 ## Development
 
 ```bash
