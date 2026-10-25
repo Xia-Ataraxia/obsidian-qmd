@@ -81,6 +81,14 @@ export class QmdSettingTab extends PluginSettingTab {
         desc: 'Display sync status in the Obsidian status bar.',
         control: { type: 'toggle', key: 'showSyncStatusBar' },
       },
+      {
+        name: 'Unmute notices',
+        desc: 'Show notices again that were muted with the bell button.',
+        visible: () => this.plugin.notices.listMuted().length > 0,
+        action: () => {
+          void this.plugin.notices.unmuteAll().then(() => this.update());
+        },
+      },
     ];
   }
 
