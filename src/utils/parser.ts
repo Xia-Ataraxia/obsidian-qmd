@@ -127,9 +127,16 @@ export function extractQueryTerms(query: string): string[] {
 		.replace(/["""[\](){}]/g, ' ')
 		.split(/\s+/)
 		.map((word) => word.trim().toLowerCase())
-		.filter((word) => word.length >= 3 && !STOP_WORDS.has(word));
+		// CJK words are often two characters, so only ASCII words need three.
+		.filter((word) => word.length >= (/^[\x20-\x7e]+$/.test(word) ? 3 : 2) && !STOP_WORDS.has(word));
 
 	return [...new Set(words)];
+}
+
+// \b only sees ASCII word characters, so match term starts with a Unicode-aware lookbehind.
+export function buildHighlightPattern(terms: string[]): RegExp {
+	const escaped = terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+	return new RegExp(`(?<![\\p{L}\\p{N}])(${escaped.join('|')})`, 'giu');
 }
 
 export function validateStructuredQueryDocument(input: string): { valid: boolean; normalized?: string; error?: string } {
