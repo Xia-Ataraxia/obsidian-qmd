@@ -311,3 +311,12 @@
 
 /* Animations */
 @keyframes qmd-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+	.qmd-spinner,
+	.qmd-skeleton-score,
+	.qmd-skeleton-title,
+	.qmd-skeleton-snippet {
+		animation: none;
+	}
+}
