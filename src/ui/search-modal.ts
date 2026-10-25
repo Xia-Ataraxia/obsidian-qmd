@@ -235,7 +235,8 @@ export class QmdSearchModal extends Modal {
 			return;
 		}
 
-		if (event.key === 'o' && event.altKey && this.canOpenSelectedResult()) {
+		// macOS reports Option+O as key 'ø', so match the physical key too.
+		if (event.altKey && (event.key.toLowerCase() === 'o' || event.code === 'KeyO') && this.canOpenSelectedResult()) {
 			event.preventDefault();
 			void this.openSelectedResult('current', true);
 			return;
