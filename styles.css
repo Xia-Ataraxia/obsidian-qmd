@@ -93,7 +93,8 @@
 	-webkit-font-smoothing: antialiased;
 }
 .qmd-search-modal .modal-header,
-.qmd-search-modal .modal-close-button { display: none; }
+.qmd-search-modal .modal-close-button,
+.qmd-search-modal > .modal-header-button { display: none; }
 .qmd-search-modal .modal-content {
 	padding: 0;
 	overflow: visible;
