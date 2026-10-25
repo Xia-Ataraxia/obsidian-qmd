@@ -1,4 +1,4 @@
-# QMD
+# QMD Search
 
 Local semantic search, related notes, and autosync for Obsidian, powered by the local QMD CLI.
 
