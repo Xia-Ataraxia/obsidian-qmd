@@ -352,11 +352,15 @@ export default class QmdPlugin extends Plugin {
       return false;
     }
 
+    // In a popout the related view itself can be the most recent leaf; open in the main editor instead of over it.
+    const { workspace } = this.app;
+    const recent = [workspace.getMostRecentLeaf(), workspace.getMostRecentLeaf(workspace.rootSplit)]
+      .find((candidate) => candidate && !(candidate.view instanceof QmdRelatedView));
     const leaf = target === 'tab'
-      ? this.app.workspace.getLeaf('tab')
+      ? workspace.getLeaf('tab')
       : target === 'split'
-        ? this.app.workspace.getLeaf('split')
-        : this.app.workspace.getMostRecentLeaf() ?? this.app.workspace.getLeaf(false);
+        ? workspace.getLeaf('split')
+        : recent ?? workspace.getLeaf(false);
 
     await leaf.openFile(abstractFile);
     return true;
