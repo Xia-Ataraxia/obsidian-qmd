@@ -100,6 +100,13 @@ export function toVaultRelativePath(value: string, collectionName: string): stri
 	return parsed.relativePath;
 }
 
+// Unresolved results keep their qmd:// path; show only the folders inside the collection.
+export function formatBreadcrumb(path: string): string {
+	const parts = path.replace(/^qmd:\/\//, '').split('/').filter(Boolean);
+	parts.pop();
+	return parts.join(' > ');
+}
+
 const FRONTMATTER_KEY_RE = /^(?:aliases|tags|date_created|date_modified|cssclasses|publish|file_class|up|related|source|author|status|type|category|rating|title|description|created|modified|updated|permalink|banner|cover|image|draft|lang|weight|slug|template|parent|children|prev|next|sidebar_position|hide_table_of_contents)\s*:/i;
 
 export function formatSnippet(snippet: string, title?: string): string {
