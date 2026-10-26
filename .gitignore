@@ -1,5 +1,5 @@
 # vscode
-.vscode 
+.vscode
 
 # Intellij
 *.iml
@@ -27,3 +27,5 @@ test-results.xml
 coverage/
 .openchrome/
 .omc/
+
+.sisyphus/

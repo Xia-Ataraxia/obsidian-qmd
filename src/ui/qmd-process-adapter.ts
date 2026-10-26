@@ -65,6 +65,14 @@ export class QmdProcessAdapter {
   ): Promise<{ collections: QmdCollectionInfo[]; resolved: QmdCollectionInfo | null; error?: string }> {
     const collections = await this.getCollections();
     const normalizedVaultPath = normalizeFsPath(vaultPath);
+    // qmd stores collection paths with symlinks resolved, so a vault opened through a symlink only matches by its real path.
+    const realVaultPath = collections.some((collection) => normalizeFsPath(collection.path) === normalizedVaultPath)
+      ? null
+      : await this.resolveRealDirectory(vaultPath);
+    const isVaultPath = (value: string): boolean => {
+      const normalized = normalizeFsPath(value);
+      return normalized === normalizedVaultPath || normalized === realVaultPath;
+    };
 
     if (collections.length === 0) {
       return {
@@ -84,7 +92,7 @@ export class QmdProcessAdapter {
         };
       }
 
-      if (normalizeFsPath(selected.path) !== normalizedVaultPath) {
+      if (!isVaultPath(selected.path)) {
         return {
           collections,
           resolved: null,
@@ -95,7 +103,7 @@ export class QmdProcessAdapter {
       return { collections, resolved: selected };
     }
 
-    const matched = collections.find((collection) => normalizeFsPath(collection.path) === normalizedVaultPath);
+    const matched = collections.find((collection) => isVaultPath(collection.path));
     if (!matched) {
       return {
         collections,
@@ -219,6 +227,20 @@ export class QmdProcessAdapter {
     }
 
     return null;
+  }
+
+  // `pwd -P` prints the directory with symlinks resolved, without reading the filesystem from the plugin.
+  private async resolveRealDirectory(directory: string): Promise<string | null> {
+    try {
+      const { stdout } = await this.execFileAsync('/bin/pwd', ['-P'], {
+        encoding: 'utf8',
+        maxBuffer: 1024 * 1024,
+        cwd: directory,
+      });
+      return stdout.trim() ? normalizeFsPath(stdout.trim()) : null;
+    } catch {
+      return null;
+    }
   }
 
   private isAutoDetectPath(value: string): boolean {
