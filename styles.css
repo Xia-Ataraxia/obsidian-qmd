@@ -92,8 +92,8 @@
 .qmd-search-shell {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
-	padding: 16px;
+	gap: var(--size-4-2);
+	padding: var(--size-4-4);
 	color: var(--text-normal);
 }
 
@@ -103,9 +103,9 @@
 	gap: 10px;
 	align-items: center;
 	min-height: 46px;
-	padding: 12px 14px;
+	padding: var(--size-4-3) 14px;
 	border: 1px solid var(--background-modifier-border);
-	border-radius: 14px;
+	border-radius: var(--radius-l);
 	background: var(--background-primary);
 	transition: border-color 150ms ease, box-shadow 150ms ease;
 }
@@ -137,8 +137,8 @@
 .qmd-mode-indicator {
 	display: flex;
 	align-items: center;
-	gap: 4px;
-	padding: 4px 10px;
+	gap: var(--size-4-1);
+	padding: var(--size-4-1) 10px;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 999px;
 	background: var(--background-primary);
@@ -152,13 +152,13 @@
 }
 .qmd-mode-indicator:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
 .qmd-mode-indicator.is-hidden { display: none; }
-.qmd-mode-chevron { width: 12px; height: 12px; color: var(--text-faint); }
+.qmd-mode-chevron { width: var(--icon-xs); height: var(--icon-xs); color: var(--text-faint); }
 .qmd-advanced-chip {
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 999px;
 	background: var(--background-primary);
 	color: var(--text-muted);
-	padding: 6px 12px;
+	padding: var(--size-2-3) var(--size-4-3);
 	font-size: var(--font-ui-small);
 	font-weight: 500;
 	line-height: 1.3;
@@ -175,7 +175,7 @@
 	background: var(--background-secondary);
 }
 .qmd-advanced-panel.is-visible { display: block; animation: qmd-reveal 180ms ease-out; }
-.qmd-advanced-chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.qmd-advanced-chip-row { display: flex; gap: var(--size-4-2); flex-wrap: wrap; margin-bottom: var(--size-4-3); }
 .qmd-advanced-input { min-height: 96px; resize: vertical; line-height: 1.55; }
 .qmd-advanced-footer {
 	display: flex;
@@ -194,7 +194,7 @@
 	color: var(--text-muted);
 }
 .qmd-search-results,
-.qmd-related-results { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.qmd-related-results { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--size-4-2); }
 .qmd-search-results {
 	max-height: min(56vh, 520px);
 	overflow-y: auto;
@@ -210,10 +210,10 @@
 .qmd-result-item {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--size-4-2);
 	width: 100%;
-	padding: 6px 12px;
-	border-radius: 6px;
+	padding: var(--size-2-3) var(--size-4-3);
+	border-radius: var(--radius-s);
 	cursor: pointer;
 	animation: qmd-item-in 200ms var(--qmd-spring) backwards;
 	transition: background-color 100ms ease, transform 160ms var(--qmd-spring);
@@ -269,7 +269,7 @@
 }
 
 /* State Displays */
-.qmd-state { animation: qmd-fade 220ms ease-out; display: flex; flex-direction: column; align-items: center; padding: 32px 16px; text-align: center; gap: 8px; }
+.qmd-state { animation: qmd-fade 220ms ease-out; display: flex; flex-direction: column; align-items: center; padding: var(--size-4-8) var(--size-4-4); text-align: center; gap: var(--size-4-2); }
 .qmd-state-icon { color: var(--text-faint); }
 .qmd-state-icon svg { width: 40px; height: 40px; }
 .qmd-state-text { font-size: var(--font-ui-small); color: var(--text-muted); margin: 0; }
@@ -281,15 +281,6 @@
 	overflow-wrap: anywhere;
 }
 .qmd-state button { margin-top: var(--size-4-1); }
-
-.qmd-spinner {
-	width: 24px;
-	height: 24px;
-	border: 2px solid var(--background-modifier-border);
-	border-top-color: var(--interactive-accent);
-	border-radius: 50%;
-	animation: qmd-spin 0.6s linear infinite;
-}
 
 /* Snippet Highlighting */
 .qmd-result-snippet mark {
@@ -308,7 +299,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 8px 12px;
+	padding: var(--size-4-2) var(--size-4-3);
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 .qmd-related-filename {
@@ -323,7 +314,7 @@
 .qmd-related-actions {
 	display: flex;
 	align-items: center;
-	gap: 4px;
+	gap: var(--size-4-1);
 	flex-shrink: 0;
 }
 .qmd-related-cached {
@@ -333,41 +324,44 @@
 	font-size: var(--font-smallest);
 	color: var(--text-faint);
 }
-.qmd-related-cached svg { width: 12px; height: 12px; }
-.qmd-related-results { padding: 6px; }
+.qmd-related-cached svg { width: var(--icon-xs); height: var(--icon-xs); }
+.qmd-related-results { padding: var(--size-2-3); }
 .qmd-related-actions .clickable-icon svg { transition: transform 300ms var(--qmd-spring); }
 .qmd-related-actions .clickable-icon:hover svg { transform: rotate(90deg); }
 .qmd-related-actions .clickable-icon:active svg { transform: rotate(180deg); }
 
 /* Skeleton Loading */
-.qmd-skeleton-container { display: grid; gap: 4px; padding: 6px; }
+.qmd-skeleton-container { display: grid; gap: var(--size-4-2); padding: var(--size-2-3); }
 .qmd-skeleton-row {
 	display: flex;
 	align-items: center;
-	padding: 6px 12px;
-	border-radius: 6px;
-	gap: 8px;
+	padding: var(--size-2-3) var(--size-4-3);
+	border-radius: var(--radius-s);
+	gap: var(--size-4-2);
 }
 .qmd-skeleton-score {
-	width: 34px;
+	/* Matches .qmd-result-score so titles don't jump when results replace the skeleton. */
+	font-size: var(--font-smallest);
+	flex: 0 0 3em;
 	height: 12px;
-	border-radius: 4px;
+	border-radius: var(--radius-s);
 	background: var(--background-modifier-border);
-	flex-shrink: 0;
 	animation: qmd-pulse 1.2s ease-in-out infinite;
 }
-.qmd-skeleton-body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.qmd-skeleton-body { flex: 1; display: flex; flex-direction: column; gap: var(--size-2-3); }
 .qmd-skeleton-title {
 	height: 14px;
 	width: 60%;
-	border-radius: 4px;
+	border-radius: var(--radius-s);
 	background: var(--background-modifier-border);
 	animation: qmd-pulse 1.2s ease-in-out infinite;
 }
+.qmd-skeleton-row:nth-child(2n) .qmd-skeleton-title { width: 45%; }
+.qmd-skeleton-row:nth-child(3n) .qmd-skeleton-snippet { width: 70%; }
 .qmd-skeleton-snippet {
 	height: 10px;
 	width: 85%;
-	border-radius: 4px;
+	border-radius: var(--radius-s);
 	background: var(--background-modifier-border);
 	animation: qmd-pulse 1.2s ease-in-out infinite;
 	animation-delay: 0.15s;
@@ -379,13 +373,12 @@
 }
 
 /* Instructions */
-.qmd-search-instructions { justify-content: flex-start; flex-wrap: wrap; padding-top: 4px; gap: 10px; }
+.qmd-search-instructions { justify-content: flex-start; flex-wrap: wrap; padding-top: var(--size-4-1); gap: 10px; }
 
 /* Animations */
 @keyframes qmd-item-in { from { opacity: 0; transform: translateY(4px); } }
 @keyframes qmd-reveal { from { opacity: 0; transform: translateY(-4px); } }
 @keyframes qmd-fade { from { opacity: 0; } }
-@keyframes qmd-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
 	.qmd-result-item { animation: qmd-fade 400ms ease backwards; }
@@ -394,13 +387,53 @@
 	.qmd-related-actions .clickable-icon:active svg { transform: none; }
 	.qmd-advanced-panel.is-visible { animation: qmd-fade 400ms ease; }
 
-	.qmd-spinner {
-		animation-duration: 2.4s;
-	}
-
 	.qmd-skeleton-score,
 	.qmd-skeleton-title,
 	.qmd-skeleton-snippet {
 		animation-duration: 2.4s;
 	}
+}
+
+/* Settings: backend status */
+.qmd-backend-status {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  color: var(--text-normal);
+}
+
+.qmd-backend-status-icon {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.qmd-backend-status-icon svg {
+  width: var(--icon-s);
+  height: var(--icon-s);
+}
+
+.qmd-backend-status.is-ready .qmd-backend-status-icon { color: var(--text-success); }
+.qmd-backend-status.is-busy .qmd-backend-status-icon { color: var(--text-accent); }
+.qmd-backend-status.is-warning .qmd-backend-status-icon { color: var(--text-warning); }
+.qmd-backend-status.is-error .qmd-backend-status-icon { color: var(--text-error); }
+
+.qmd-backend-status.is-busy .qmd-backend-status-icon svg {
+  animation: qmd-backend-spin 1.2s linear infinite;
+}
+
+.qmd-backend-detail {
+  margin-top: var(--size-4-1);
+  margin-inline-start: calc(var(--icon-s) + var(--size-4-2));
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+@keyframes qmd-backend-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qmd-backend-status.is-busy .qmd-backend-status-icon svg {
+    animation-duration: 3s;
+  }
 }

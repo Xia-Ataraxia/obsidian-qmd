@@ -86,10 +86,7 @@ export class QmdRelatedView extends ItemView {
 		this.renderShell(activeFile);
 
 		if (!(activeFile instanceof TFile) || activeFile.extension !== 'md') {
-			this.renderEmpty('Open a markdown note to see related results.', 'file-text', {
-				label: 'Refresh',
-				onClick: () => { void this.renderView(true); },
-			});
+			this.renderEmpty('Open a markdown note to see related results.', 'file-text');
 			return;
 		}
 
@@ -131,7 +128,7 @@ export class QmdRelatedView extends ItemView {
 			this.plugin.logger.error('Failed to find related notes', error);
 			this.renderShell(activeFile);
 			this.renderEmpty('Could not find related notes.', 'alert-circle', {
-				label: 'Refresh',
+				label: 'Try again',
 				onClick: () => { void this.renderView(true); },
 			});
 		}

@@ -1,4 +1,4 @@
-import { PluginSettingTab, type Setting, type SettingDefinitionItem } from 'obsidian';
+import { PluginSettingTab, setIcon, type Setting, type SettingDefinitionItem } from 'obsidian';
 import type QmdPlugin from '../main';
 import { SEARCH_MODE_LABELS } from '../domain/settings';
 import type { QmdPluginSettings } from '../types';
@@ -7,8 +7,18 @@ type SettingKey = keyof QmdPluginSettings;
 
 const TEXT_KEYS: SettingKey[] = ['qmdExecutablePath', 'collectionOverride'];
 
+type BackendTone = 'ready' | 'busy' | 'warning' | 'error';
+
+const TONE_ICONS: Record<BackendTone, string> = {
+  ready: 'check-circle-2',
+  busy: 'refresh-cw',
+  warning: 'alert-triangle',
+  error: 'alert-circle',
+};
+
 export class QmdSettingTab extends PluginSettingTab {
   private backendSetting: Setting | null = null;
+  private syncButton: HTMLButtonElement | null = null;
 
   constructor(app: QmdPlugin['app'], private readonly plugin: QmdPlugin) {
     super(app, plugin);
@@ -25,8 +35,20 @@ export class QmdSettingTab extends PluginSettingTab {
             searchable: false,
             render: (setting) => {
               this.backendSetting = setting;
+              setting
+                .addExtraButton((button) => button
+                  .setIcon('rotate-cw')
+                  .setTooltip('Check again')
+                  .onClick(() => void this.recheckBackend()))
+                .addButton((button) => {
+                  this.syncButton = button.buttonEl;
+                  button.setButtonText('Sync now').onClick(() => void this.plugin.runSyncNow());
+                });
               this.renderBackendStatus();
-              return () => { this.backendSetting = null; };
+              return () => {
+                this.backendSetting = null;
+                this.syncButton = null;
+              };
             },
           },
           {
@@ -36,51 +58,68 @@ export class QmdSettingTab extends PluginSettingTab {
           },
           {
             name: 'Collection override',
-            desc: 'Optional qmd collection name to force instead of vault-path auto-detection.',
-            control: { type: 'text', key: 'collectionOverride', placeholder: 'Obsidian' },
+            desc: 'Optional qmd collection name to use instead of the one matched to this vault.',
+            control: { type: 'text', key: 'collectionOverride', placeholder: 'Auto-detect' },
           },
         ],
       },
       {
-        name: 'Default search mode',
-        desc: 'Mode selected when the search modal opens.',
-        control: { type: 'dropdown', key: 'defaultSearchMode', options: SEARCH_MODE_LABELS },
+        type: 'group',
+        heading: 'Search',
+        items: [
+          {
+            name: 'Default search mode',
+            desc: 'Mode selected when the search modal opens.',
+            control: { type: 'dropdown', key: 'defaultSearchMode', options: SEARCH_MODE_LABELS },
+          },
+          {
+            name: 'Persist last mode',
+            desc: 'Remember the last mode used in the search modal.',
+            control: { type: 'toggle', key: 'persistLastMode' },
+          },
+          {
+            name: 'Show mode selector',
+            desc: 'Display the search mode pill in the search modal.',
+            control: { type: 'toggle', key: 'showModeSelector' },
+          },
+          {
+            name: 'Search result limit',
+            desc: 'Number of results shown in the search modal.',
+            control: { type: 'number', key: 'previewResultLimit', placeholder: '8', min: 1, step: 1 },
+          },
+          {
+            name: 'Related note limit',
+            desc: 'Number of related notes shown in the sidebar view.',
+            control: { type: 'number', key: 'relatedResultLimit', placeholder: '8', min: 1, step: 1 },
+          },
+        ],
       },
       {
-        name: 'Search result limit',
-        desc: 'Number of results shown in the search modal.',
-        control: { type: 'number', key: 'previewResultLimit', placeholder: '8', min: 1, step: 1 },
+        type: 'group',
+        heading: 'Sync',
+        items: [
+          {
+            name: 'Auto-sync',
+            desc: 'Run qmd update and qmd embed after vault changes.',
+            control: { type: 'toggle', key: 'autoSyncEnabled' },
+          },
+          {
+            name: 'Auto-sync debounce (ms)',
+            desc: 'Wait time after the last change before running qmd update and qmd embed.',
+            visible: () => this.plugin.settings.autoSyncEnabled,
+            control: { type: 'number', key: 'autoSyncDebounceMs', placeholder: '7000', min: 1, step: 1 },
+          },
+        ],
       },
       {
-        name: 'Related note limit',
-        desc: 'Number of related notes shown in the sidebar view.',
-        control: { type: 'number', key: 'relatedResultLimit', placeholder: '8', min: 1, step: 1 },
-      },
-      {
-        name: 'Auto-sync',
-        desc: 'Run qmd update and qmd embed after vault changes.',
-        control: { type: 'toggle', key: 'autoSyncEnabled' },
-      },
-      {
-        name: 'Auto-sync debounce (ms)',
-        desc: 'Wait time after the last change before running qmd update and qmd embed.',
-        control: { type: 'number', key: 'autoSyncDebounceMs', placeholder: '7000', min: 1, step: 1 },
-      },
-      {
-        name: 'Persist last mode',
-        desc: 'Remember the last mode used in the search modal.',
-        control: { type: 'toggle', key: 'persistLastMode' },
-      },
-      {
-        name: 'Show mode selector',
-        desc: 'Display the search mode pill in the search modal.',
-        control: { type: 'toggle', key: 'showModeSelector' },
-      },
-      {
-        name: 'Show sync status bar item',
-        desc: 'Display sync status in the Obsidian status bar.',
-        control: { type: 'toggle', key: 'showSyncStatusBar' },
-      },
+        type: 'group',
+        heading: 'Display',
+        items: [
+          {
+            name: 'Show sync status bar item',
+            desc: 'Display sync status in the status bar.',
+            control: { type: 'toggle', key: 'showSyncStatusBar' },
+          },
       {
         name: 'Unmute notices',
         desc: 'Show notices again that were muted with the bell button.',
@@ -91,6 +130,8 @@ export class QmdSettingTab extends PluginSettingTab {
             this.update();
           });
         },
+      },
+        ],
       },
     ];
   }
@@ -130,6 +171,7 @@ export class QmdSettingTab extends PluginSettingTab {
         break;
       case 'autoSyncEnabled':
         this.plugin.refreshStatusBar();
+        this.update();
         break;
       case 'showSyncStatusBar':
         this.plugin.refreshStatusBar();
@@ -137,10 +179,41 @@ export class QmdSettingTab extends PluginSettingTab {
     }
   }
 
-  private renderBackendStatus(): void {
-    this.backendSetting?.setDesc(createFragment((frag) => {
-      frag.createDiv({ text: this.plugin.describeBackend() });
-      frag.createDiv({ text: this.plugin.describeExecutableResolution() });
+  renderBackendStatus(): void {
+    if (!this.backendSetting) return;
+    const tone = this.getBackendTone();
+    this.backendSetting.setDesc(createFragment((frag) => {
+      const line = frag.createDiv({ cls: `qmd-backend-status is-${tone}` });
+      setIcon(line.createSpan({ cls: 'qmd-backend-status-icon' }), TONE_ICONS[tone]);
+      line.createSpan({ text: tone === 'busy' || tone === 'error' ? this.describeSync() : this.plugin.describeBackend() });
+      frag.createDiv({ cls: 'qmd-backend-detail', text: this.plugin.describeExecutableResolution() });
     }));
+    if (this.syncButton) {
+      this.syncButton.disabled = tone === 'warning' || tone === 'busy';
+      this.syncButton.setText(tone === 'busy' ? 'Syncing…' : 'Sync now');
+    }
+  }
+
+  private describeSync(): string {
+    const { syncState } = this.plugin;
+    return syncState.phase === 'error' ? syncState.error ?? syncState.message : syncState.message;
+  }
+
+  private getBackendTone(): BackendTone {
+    if (this.plugin.getSetupMessage()) return 'warning';
+    switch (this.plugin.syncState.phase) {
+      case 'syncing':
+      case 'embedding':
+        return 'busy';
+      case 'error':
+        return 'error';
+      default:
+        return 'ready';
+    }
+  }
+
+  private async recheckBackend(): Promise<void> {
+    await this.plugin.refreshBackendState();
+    this.update();
   }
 }
