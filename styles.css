@@ -26,8 +26,12 @@
 @keyframes qmd-status-pulse { 50% { opacity: 0.25; transform: scale(0.8); } }
 @keyframes qmd-status-swap { from { opacity: 0; transform: translateY(3px); } }
 @keyframes qmd-status-fade { from { opacity: 0.3; } }
+.qmd-status-bar--done::before { animation: qmd-status-done 0.7s ease-out; }
+@keyframes qmd-status-done { 30% { background: var(--color-green); transform: scale(1.5); } }
+@keyframes qmd-status-done-fade { 30% { background: var(--color-green); opacity: 0.5; } }
 @media (prefers-reduced-motion: reduce) {
 	.qmd-status-bar--swap { animation: qmd-status-fade 0.4s ease; }
+	.qmd-status-bar--done::before { animation: qmd-status-done-fade 0.6s ease; }
 	.qmd-status-bar.is-syncing::before,
 	.qmd-status-bar.is-embedding::before { animation: qmd-status-fade 1.8s ease-in-out infinite alternate; }
 }
