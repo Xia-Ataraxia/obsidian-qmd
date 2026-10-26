@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-qmd",
-	"version": "1.5.3",
+	"version": "1.5.4",
 	"description": "Obsidian wrapper for local QMD search, related notes, and autosync.",
 	"main": "main.js",
 	"type": "module",
