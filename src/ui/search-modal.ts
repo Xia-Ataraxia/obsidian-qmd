@@ -472,8 +472,8 @@ export class QmdSearchModal extends Modal {
 			return;
 		}
 
-		await this.plugin.openSearchResult(result, target);
-		if (!keepOpen) {
+		const opened = await this.plugin.openSearchResult(result, target);
+		if (opened && !keepOpen) {
 			// Restoring focus to the previous editor would steal it back from a newly opened split.
 			this.shouldRestoreSelection = false;
 			this.close();
