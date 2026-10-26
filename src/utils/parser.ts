@@ -161,7 +161,7 @@ export function validateStructuredQueryDocument(input: string): { valid: boolean
 
 		const match = line.match(TYPED_QUERY_RE);
 		if (!match) {
-			return { valid: false, error: 'Each line must start with lex:, vec:, hyde:, or intent:.' };
+			return { valid: false, error: 'Start each line with a type: lex, vec, hyde, or intent.' };
 		}
 
 		const prefix = match[1]!.toLowerCase();

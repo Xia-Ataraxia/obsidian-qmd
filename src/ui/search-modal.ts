@@ -90,7 +90,7 @@ export class QmdSearchModal extends Modal {
 		this.queryInputEl = inputRow.createEl('input', {
 			type: 'text',
 			cls: 'qmd-search-input',
-			attr: { placeholder: 'Search your vault...' },
+			attr: { placeholder: 'Search your vault\u2026' },
 		});
 
 		inputRow.createSpan({ cls: 'qmd-advanced-hint', text: 'Structured query' });
@@ -472,11 +472,14 @@ export class QmdSearchModal extends Modal {
 			}
 
 			const message = error instanceof Error ? error.message : String(error);
+			this.plugin.logger.error('Search failed', { error: message });
 			this.metaEl.empty();
 			this.results = [];
 			this.renderEmptyState('Search failed.', {
 				icon: 'alert-circle',
-				detail: message,
+				detail: /locked|busy/i.test(message)
+					? 'Search is busy. Try again in a moment.'
+					: "Couldn't reach the search index. Try again.",
 				action: { label: 'Try again', onClick: () => this.submitCurrentQuery() },
 			});
 		} finally {

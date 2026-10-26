@@ -90,7 +90,7 @@ describe('qmd parser helpers', () => {
 
     expect(validateStructuredQueryDocument('plain text\nvec: auth')).toEqual({
       valid: false,
-      error: 'Each line must start with lex:, vec:, hyde:, or intent:.',
+      error: 'Start each line with a type: lex, vec, hyde, or intent.',
     });
   });
 });
