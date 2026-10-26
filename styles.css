@@ -44,13 +44,12 @@
 	font-weight: 700;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
-	color: var(--text-muted);
+	opacity: 0.7;
 }
 
 .plugin-notice-content {
 	margin: 0;
 	line-height: 1.45;
-	color: var(--text-normal);
 }
 
 .plugin-notice-actions {
