@@ -76,7 +76,7 @@ export function insertResultLink(plugin: QmdPlugin, result: QmdSearchResult): vo
     return;
   }
 
-  const view = plugin.getRecentNoteLeaf()?.view;
+  const view = plugin.getRecentNoteLeaf(true)?.view;
   if (!(view instanceof MarkdownView)) {
     plugin.notices.show('no_active_editor');
     return;

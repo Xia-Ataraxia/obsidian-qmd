@@ -203,12 +203,11 @@ export default class QmdPlugin extends Plugin {
   async refreshBackendState(showNotice = false): Promise<void> {
     // Persistent until the result below replaces it in place, so the user sees the re-scan start right away.
     if (showNotice) this.notices.show('backend_status', { message: 'Re-scanning collections…' }, { timeout: 0 });
-    const vaultPath = this.getVaultPath();
-
-    this.adapter.setWorkingDirectory(vaultPath);
-    this.adapter.setExecutablePath(this.settings.qmdExecutablePath.trim() || DEFAULT_SETTINGS.qmdExecutablePath);
 
     try {
+      const vaultPath = this.getVaultPath();
+      this.adapter.setWorkingDirectory(vaultPath);
+      this.adapter.setExecutablePath(this.settings.qmdExecutablePath.trim() || DEFAULT_SETTINGS.qmdExecutablePath);
       await this.adapter.checkBinary();
 
       if (!vaultPath) {
@@ -232,8 +231,12 @@ export default class QmdPlugin extends Plugin {
       this.syncState = { phase: 'idle', message: 'QMD ready' };
     }
 
-    this.refreshStatusBar();
-    if (showNotice) this.notices.show('backend_status', { message: this.describeBackend() });
+    try {
+      this.refreshStatusBar();
+    } finally {
+      // Always replaces the persistent "Re-scanning" notice, even if rendering throws.
+      if (showNotice) this.notices.show('backend_status', { message: this.describeBackend() });
+    }
     await this.refreshRelatedView();
   }
 
@@ -342,10 +345,12 @@ export default class QmdPlugin extends Plugin {
   }
 
   // Most recent main-area leaf in any window. The related view is skipped: in a popout it can itself be the most recent leaf.
-  getRecentNoteLeaf(): WorkspaceLeaf | null {
+  // markdownOnly skips graphs, empty tabs, etc. for callers that need an editor.
+  getRecentNoteLeaf(markdownOnly = false): WorkspaceLeaf | null {
     const { workspace } = this.app;
     return [this.lastNoteLeaf, workspace.getMostRecentLeaf(), workspace.getMostRecentLeaf(workspace.rootSplit)]
-      .find((candidate): candidate is WorkspaceLeaf => !!candidate && this.isNoteLeaf(candidate)) ?? null;
+      .find((candidate): candidate is WorkspaceLeaf =>
+        !!candidate && this.isNoteLeaf(candidate) && (!markdownOnly || candidate.view instanceof MarkdownView)) ?? null;
   }
 
   private isNoteLeaf(leaf: WorkspaceLeaf): boolean {
