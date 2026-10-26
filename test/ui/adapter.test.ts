@@ -54,6 +54,23 @@ describe('QmdProcessAdapter', () => {
     expect(resolved.error).toBeUndefined();
   });
 
+  it('matches a vault opened through a symlink by its real path', async () => {
+    const execFileAsync = vi.fn(async (file: string, args: string[], options: { cwd?: string }) => {
+      if (file === '/bin/pwd') {
+        return { stdout: options.cwd === '/Users/test/Link' ? '/Volumes/Data/Vault\n' : `${options.cwd}\n`, stderr: '' };
+      }
+      if (args[1] === 'list') {
+        return { stdout: 'Collections (1):\n\nobsidian (qmd://obsidian/)\n', stderr: '' };
+      }
+      return { stdout: 'Collection: obsidian\n  Path:     /Volumes/Data/Vault\n  Pattern:  **/*.md\n', stderr: '' };
+    });
+    const adapter = new QmdProcessAdapter('/opt/qmd/bin/qmd', execFileAsync);
+
+    expect((await adapter.resolveCollectionForVault('/Users/test/Link')).resolved?.name).toBe('obsidian');
+    expect((await adapter.resolveCollectionForVault('/Users/test/Link', 'obsidian')).resolved?.name).toBe('obsidian');
+    expect((await adapter.resolveCollectionForVault('/Users/test/Other')).resolved).toBeNull();
+  });
+
   it('uses a configured path directly without asking the login shell', async () => {
     const execFileAsync = vi.fn(async (_file: string, _args: string[], _options: { env?: Record<string, string | undefined> }) => ({ stdout: '', stderr: '' }));
     const adapter = new QmdProcessAdapter('/opt/qmd/bin/qmd', execFileAsync);

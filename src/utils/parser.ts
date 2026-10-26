@@ -1,4 +1,3 @@
-import { realpathSync } from 'fs';
 import * as path from 'path';
 import type { QmdCollectionInfo, QmdSearchResult } from '../types';
 
@@ -6,16 +5,8 @@ const COLLECTION_LINE_RE = /^(.+?)\s+\(qmd:\/\/.+\/\)\s*$/;
 const VIRTUAL_PATH_RE = /^qmd:\/\/([^/]+)\/(.+)$/;
 const TYPED_QUERY_RE = /^(lex|vec|hyde|intent):\s*/i;
 
-/**
- * Normalize a filesystem path — resolves `.`/`..` segments AND symlinks.
- * Falls back to `path.resolve` if the path doesn't exist (realpathSync throws).
- */
 export function normalizeFsPath(value: string): string {
-	try {
-		return realpathSync(value).replace(/\\/g, '/').replace(/\/+$/, '');
-	} catch {
-		return path.resolve(value).replace(/\\/g, '/').replace(/\/+$/, '');
-	}
+	return path.resolve(value).replace(/\\/g, '/').replace(/\/+$/, '');
 }
 
 export function parseCollectionList(stdout: string): string[] {
