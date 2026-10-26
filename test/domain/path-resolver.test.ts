@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { handelize, VaultPathResolver } from '../../src/domain/path-resolver';
+import { handelize, resolveSlugPath } from '../../src/domain/path-resolver';
 
 describe('handelize', () => {
 	it('lowercases and replaces spaces with hyphens', () => {
@@ -32,63 +32,68 @@ describe('handelize', () => {
 	});
 });
 
-describe('VaultPathResolver', () => {
-	const makeTFile = (path: string) => ({ path });
+describe('resolveSlugPath', () => {
+	type Node = { path: string; name: string; children?: Node[] };
+	// Builds a folder tree from flat paths, standing in for vault.getRoot().
+	const tree = (paths: string[]): Node & { children: Node[] } => {
+		const root = { path: '/', name: '', children: [] as Node[] };
+		for (const path of paths) {
+			let folder = root;
+			const parts = path.split('/');
+			parts.forEach((name, idx) => {
+				const childPath = parts.slice(0, idx + 1).join('/');
+				if (idx === parts.length - 1) {
+					folder.children.push({ path: childPath, name });
+					return;
+				}
+				let next = folder.children.find((c) => c.path === childPath);
+				if (!next) {
+					next = { path: childPath, name, children: [] };
+					folder.children.push(next);
+				}
+				folder = next as typeof root;
+			});
+		}
+		return root;
+	};
 
 	it('resolves slugified paths to real vault paths', () => {
-		const resolver = new VaultPathResolver();
-		const files = [
-			makeTFile('12. Area/Obsidian Plugin/Obsidian Plugin.md'),
-			makeTFile('00. Inbox/Obsidian Plugin - Plugin Groups.md'),
-		];
-
-		resolver.rebuild(files);
-
-		expect(resolver.resolve('12-area/obsidian-plugin/obsidian-plugin.md'))
-			.toBe('12. Area/Obsidian Plugin/Obsidian Plugin.md');
-		expect(resolver.resolve('00-inbox/obsidian-plugin-plugin-groups.md'))
-			.toBe('00. Inbox/Obsidian Plugin - Plugin Groups.md');
+		const root = tree([
+			'12. Area/Obsidian Plugin/Obsidian Plugin.md',
+			'00. Inbox/Obsidian Plugin - Plugin Groups.md',
+		]);
+		expect(resolveSlugPath('12-area/obsidian-plugin/obsidian-plugin.md', root))
+			.toEqual(['12. Area/Obsidian Plugin/Obsidian Plugin.md']);
+		expect(resolveSlugPath('00-inbox/obsidian-plugin-plugin-groups.md', root))
+			.toEqual(['00. Inbox/Obsidian Plugin - Plugin Groups.md']);
 	});
 
-	it('returns null for unknown paths', () => {
-		const resolver = new VaultPathResolver();
-		resolver.rebuild([]);
-		expect(resolver.resolve('nonexistent.md')).toBeNull();
+	it('returns nothing for unknown paths', () => {
+		expect(resolveSlugPath('nonexistent.md', tree(['a.md']))).toEqual([]);
+		expect(resolveSlugPath('', tree(['a.md']))).toEqual([]);
 	});
 
-	it('respects dirty flag for lazy rebuild', () => {
-		const resolver = new VaultPathResolver();
-		const files = [makeTFile('test.md')];
-
-		resolver.rebuildIfDirty(() => files);
-		expect(resolver.resolve('test.md')).toBe('test.md');
-
-		// After rebuild, not dirty — the file list isn't even requested
-		const listFiles = vi.fn(() => [makeTFile('other.md')] as never[]);
-		resolver.rebuildIfDirty(listFiles);
-		expect(listFiles).not.toHaveBeenCalled();
-		expect(resolver.resolve('test.md')).toBe('test.md');
-
-		// Mark dirty — next rebuildIfDirty will rebuild
-		resolver.markDirty();
-		resolver.rebuildIfDirty(listFiles);
-		expect(resolver.resolve('test.md')).toBeNull();
-		expect(resolver.resolve('other.md')).toBe('other.md');
+	it('descends only the folders on the slug path', () => {
+		const root = tree(['Inbox/Note.md', 'Archive/Deep/Other.md']);
+		const deep = root.children.find((c) => c.name === 'Archive')!.children![0]!;
+		const deepChildren = deep.children;
+		const read = vi.fn(() => deepChildren);
+		Object.defineProperty(deep, 'children', { get: read });
+		expect(resolveSlugPath('inbox/note.md', root)).toEqual(['Inbox/Note.md']);
+		expect(read).not.toHaveBeenCalled();
 	});
 
-	it('does not resolve colliding slugs to an arbitrary file', () => {
-		const resolver = new VaultPathResolver();
-		const files = [
-			makeTFile('Inbox/My Note.md'),
-			makeTFile('Inbox/My--Note.md'),
-			makeTFile('Inbox/Unique.md'),
-		];
+	it('reports colliding slugs instead of picking an arbitrary file', () => {
+		const root = tree(['Inbox/My Note.md', 'Inbox/My--Note.md', 'Inbox/Unique.md']);
+		expect(resolveSlugPath('inbox/my-note.md', root)).toHaveLength(2);
+		expect(resolveSlugPath('inbox/unique.md', root)).toEqual(['Inbox/Unique.md']);
+	});
 
-		resolver.rebuild(files);
-
-		expect(resolver.isAmbiguous('inbox/my-note.md')).toBe(true);
-		expect(resolver.isAmbiguous('inbox/unique.md')).toBe(false);
-		expect(resolver.resolve('inbox/my-note.md')).toBeNull();
-		expect(resolver.resolve('inbox/unique.md')).toBe('Inbox/Unique.md');
+	it('matches handelize for every file in the tree', () => {
+		const paths = ['00. Inbox/My Note.md', '12. Area/온슬/2026-02-26 온슬.md', '--/Hidden.md', 'Hot Reload.obsidian.plugin.md'];
+		const root = tree(paths);
+		for (const path of paths) {
+			expect(resolveSlugPath(handelize(path), root)).toEqual([path]);
+		}
 	});
 });

@@ -1,4 +1,4 @@
-import type { FileRef } from '../types';
+import type { FolderRef, VaultNodeRef } from '../types';
 
 /**
  * Converts emoji runs to their hex codepoints (mirrors QMD's emojiToHex).
@@ -12,86 +12,52 @@ function emojiToHex(str: string): string {
 	});
 }
 
+function slugSegment(segment: string, isLast: boolean): string {
+	segment = emojiToHex(segment.toLowerCase());
+	const extMatch = isLast ? segment.match(/(\.[a-z0-9]+)$/i) : null;
+	const ext = extMatch ? extMatch[1] : '';
+	const base = ext ? segment.slice(0, -ext.length) : segment;
+	return base.replace(/[^\p{L}\p{N}$]+/gu, '-').replace(/^-+|-+$/g, '') + ext;
+}
+
 /**
  * Replicates QMD's handelize() — converts a vault-relative path to the
  * slugified form QMD uses in virtual paths (qmd://collection/…).
  */
 export function handelize(path: string): string {
 	return path
-		.toLowerCase()
 		.split('/')
-		.map((segment, idx, arr) => {
-			const isLast = idx === arr.length - 1;
-			segment = emojiToHex(segment);
-
-			if (isLast) {
-				const extMatch = segment.match(/(\.[a-z0-9]+)$/i);
-				const ext = extMatch ? extMatch[1] : '';
-				const base = ext ? segment.slice(0, -ext.length) : segment;
-				const cleaned = base
-					.replace(/[^\p{L}\p{N}$]+/gu, '-')
-					.replace(/^-+|-+$/g, '');
-				return cleaned + ext;
-			}
-
-			return segment
-				.replace(/[^\p{L}\p{N}$]+/gu, '-')
-				.replace(/^-+|-+$/g, '');
-		})
+		.map((segment, idx, arr) => slugSegment(segment, idx === arr.length - 1))
 		.filter(Boolean)
 		.join('/');
 }
 
 /**
- * Maintains a bidirectional map between QMD's slugified paths and actual
- * vault-relative paths, enabling correct file resolution from search results.
+ * Maps a QMD slugified path back to real vault paths by descending only the
+ * folders on that path, so the vault is never listed as a whole.
+ * Returns every match (at most 2); more than one means the slug is ambiguous.
  */
-export class VaultPathResolver {
-	private slugToReal = new Map<string, string>();
-	private ambiguousSlugs = new Set<string>();
-	private dirty = true;
+export function resolveSlugPath(slugifiedPath: string, root: FolderRef): string[] {
+	const segments = slugifiedPath.split('/').filter(Boolean);
+	const matches: string[] = [];
 
-	markDirty(): void {
-		this.dirty = true;
-	}
-
-	rebuild(files: FileRef[]): void {
-		this.slugToReal.clear();
-		this.ambiguousSlugs.clear();
-		for (const file of files) {
-			try {
-				const slug = handelize(file.path);
-				if (this.ambiguousSlugs.has(slug)) {
-					continue;
+	const walk = (nodes: VaultNodeRef[], idx: number): void => {
+		for (const node of nodes) {
+			if (matches.length > 1) return;
+			const slug = slugSegment(node.name, !node.children);
+			// handelize() drops segments that slugify to nothing, so such folders are transparent.
+			if (node.children && slug === '') {
+				walk(node.children, idx);
+			} else if (slug === segments[idx]) {
+				if (idx < segments.length - 1) {
+					if (node.children) walk(node.children, idx + 1);
+				} else if (!node.children) {
+					matches.push(node.path);
 				}
-				if (this.slugToReal.has(slug)) {
-					this.slugToReal.delete(slug);
-					this.ambiguousSlugs.add(slug);
-					continue;
-				}
-				this.slugToReal.set(slug, file.path);
-			} catch {
-				// Skip files that handelize() rejects (no valid content).
 			}
 		}
-		this.dirty = false;
-	}
+	};
 
-	// Lazy so a clean map never re-lists the vault.
-	rebuildIfDirty(listFiles: () => FileRef[]): void {
-		if (this.dirty) {
-			this.rebuild(listFiles());
-		}
-	}
-
-	isAmbiguous(slugifiedPath: string): boolean {
-		return this.ambiguousSlugs.has(slugifiedPath);
-	}
-
-	resolve(slugifiedPath: string): string | null {
-		if (this.ambiguousSlugs.has(slugifiedPath)) {
-			return null;
-		}
-		return this.slugToReal.get(slugifiedPath) ?? null;
-	}
+	if (segments.length > 0) walk(root.children, 0);
+	return matches;
 }

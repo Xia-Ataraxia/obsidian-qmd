@@ -1,5 +1,4 @@
 import { execFile } from 'child_process';
-import { existsSync, readFileSync, readdirSync } from 'fs';
 import { homedir } from 'os';
 import * as path from 'path';
 import { promisify } from 'util';
@@ -20,11 +19,11 @@ type ExecFileAsync = (
 
 const defaultExecFile = promisify(execFile) as ExecFileAsync;
 const SHELLS = ['/bin/zsh', '/bin/bash'];
-const QMD_PACKAGE_SUBPATH = path.join('@tobilu', 'qmd', 'dist', 'qmd.js');
 
 export class QmdProcessAdapter {
   private resolvedExecutablePath: string | null = null;
-  private resolvedNodePath: string | null = null;
+  // The GUI app's PATH is minimal; the login shell's PATH lets `#!/usr/bin/env node` scripts find node.
+  private loginShellPath: string | null = null;
   private workingDirectory: string | null = null;
 
   constructor(
@@ -35,7 +34,7 @@ export class QmdProcessAdapter {
   setExecutablePath(value: string): void {
     this.executablePath = value;
     this.resolvedExecutablePath = null;
-    this.resolvedNodePath = null;
+    this.loginShellPath = null;
   }
 
   setWorkingDirectory(value: string | null): void {
@@ -44,10 +43,6 @@ export class QmdProcessAdapter {
 
   getResolvedExecutablePath(): string | null {
     return this.resolvedExecutablePath;
-  }
-
-  getResolvedNodePath(): string | null {
-    return this.resolvedNodePath;
   }
 
   async checkBinary(): Promise<void> {
@@ -159,36 +154,27 @@ export class QmdProcessAdapter {
 
   private async run(args: string[]): Promise<{ stdout: string; stderr: string }> {
     const executable = await this.resolveExecutablePath();
-    const invocation = await this.resolveInvocation(executable, args);
     const cwd = this.getWorkingDirectory();
 
     try {
-      return await this.execFileAsync(invocation.file, invocation.args, {
+      return await this.execFileAsync(executable, args, {
         encoding: 'utf8',
         maxBuffer: 10 * 1024 * 1024,
         cwd,
-        env: await this.buildEnvWithNode(executable, cwd),
+        env: this.buildEnv(executable, cwd),
       });
     } catch (error) {
-      throw this.normalizeError(error, executable, invocation.file);
+      throw this.normalizeError(error, executable);
     }
   }
 
-  private async buildEnvWithNode(
-    executablePath: string,
-    cwd: string,
-  ): Promise<Record<string, string | undefined>> {
-    const env = { ...process.env, PWD: cwd };
-
-    try {
-      const nodePath = await this.resolveNodeRuntime(executablePath);
-      const nodeBinDir = path.dirname(nodePath);
-      const currentPath = process.env.PATH ?? '';
-      if (currentPath.split(':').includes(nodeBinDir)) return env;
-      return { ...env, PATH: `${nodeBinDir}:${currentPath}` };
-    } catch {
-      return env;
-    }
+  // Puts the qmd binary's folder first so a node-backed qmd finds the node installed beside it.
+  private buildEnv(executablePath: string, cwd: string): Record<string, string | undefined> {
+    const basePath = this.loginShellPath ?? process.env.PATH ?? '';
+    const entries = basePath.split(':').filter(Boolean);
+    const binDir = executablePath.includes('/') ? path.dirname(executablePath) : null;
+    const pathEntries = binDir && !entries.includes(binDir) ? [binDir, ...entries] : entries;
+    return { ...process.env, PWD: cwd, PATH: pathEntries.join(':') };
   }
 
   private async resolveExecutablePath(): Promise<string> {
@@ -199,51 +185,14 @@ export class QmdProcessAdapter {
     const configured = this.executablePath.trim();
     const commandName = this.isAutoDetectPath(configured) ? 'qmd' : configured;
 
-    if (!commandName) {
-      this.resolvedExecutablePath = 'qmd';
-      return this.resolvedExecutablePath;
-    }
-
-    if (commandName.includes('/') || path.isAbsolute(commandName)) {
+    // An explicit path is used as-is; a missing file surfaces as ENOENT from execFile.
+    if (commandName.includes('/')) {
       this.resolvedExecutablePath = commandName;
       return commandName;
     }
 
-    const shellResolved = await this.resolveFromLoginShell(commandName);
-    if (shellResolved) {
-      this.resolvedExecutablePath = shellResolved;
-      return shellResolved;
-    }
-
-    const guessed = this.findCommonBinaryPath(commandName);
-    if (guessed) {
-      this.resolvedExecutablePath = guessed;
-      return guessed;
-    }
-
-    const packageScript = commandName === 'qmd' ? this.findInstalledQmdScript() : null;
-    if (packageScript) {
-      this.resolvedExecutablePath = packageScript;
-      return packageScript;
-    }
-
-    this.resolvedExecutablePath = commandName;
-    return commandName;
-  }
-
-  private async resolveInvocation(
-    executablePath: string,
-    args: string[],
-  ): Promise<{ file: string; args: string[] }> {
-    if (!this.requiresNodeRuntime(executablePath)) {
-      return { file: executablePath, args };
-    }
-
-    const nodePath = await this.resolveNodeRuntime(executablePath);
-    return {
-      file: nodePath,
-      args: [executablePath, ...args],
-    };
+    this.resolvedExecutablePath = (await this.resolveFromLoginShell(commandName)) ?? commandName;
+    return this.resolvedExecutablePath;
   }
 
   private async resolveFromLoginShell(commandName: string): Promise<string | null> {
@@ -251,115 +200,21 @@ export class QmdProcessAdapter {
     const env = { ...process.env, PWD: cwd };
 
     for (const shell of SHELLS) {
-      if (!existsSync(shell)) {
-        continue;
-      }
-
       try {
         const { stdout } = await this.execFileAsync(
           shell,
-          ['-lc', `command -v ${this.escapeShellArg(commandName)}`],
-          {
-            encoding: 'utf8',
-            maxBuffer: 1024 * 1024,
-            cwd,
-            env,
-          },
+          ['-lc', `printf '%s\\n' "$PATH"; command -v ${this.escapeShellArg(commandName)}`],
+          { encoding: 'utf8', maxBuffer: 1024 * 1024, cwd, env },
         );
 
-        const resolved = stdout.trim();
-        if (resolved && existsSync(resolved)) {
+        // Last two lines, since rc files may print their own output first.
+        const [loginPath = '', resolved = ''] = stdout.trim().split('\n').slice(-2).map((line) => line.trim());
+        if (resolved.startsWith('/')) {
+          this.loginShellPath = loginPath || null;
           return resolved;
         }
       } catch {
-        // Fall through to other lookup strategies.
-      }
-    }
-
-    return null;
-  }
-
-  private requiresNodeRuntime(executablePath: string): boolean {
-    try {
-      const header = readFileSync(executablePath, 'utf8').slice(0, 120);
-      return header.startsWith('#!/usr/bin/env node') || header.startsWith('#!/usr/bin/node');
-    } catch {
-      return false;
-    }
-  }
-
-  private async resolveNodeRuntime(executablePath: string): Promise<string> {
-    if (this.resolvedNodePath && existsSync(this.resolvedNodePath)) {
-      return this.resolvedNodePath;
-    }
-
-    const siblingNode = path.join(path.dirname(executablePath), 'node');
-    if (existsSync(siblingNode)) {
-      this.resolvedNodePath = siblingNode;
-      return siblingNode;
-    }
-
-    const shellResolved = await this.resolveFromLoginShell('node');
-    if (shellResolved) {
-      this.resolvedNodePath = shellResolved;
-      return shellResolved;
-    }
-
-    const guessed = this.findCommonBinaryPath('node');
-    if (guessed) {
-      this.resolvedNodePath = guessed;
-      return guessed;
-    }
-
-    throw new Error(
-      `QMD requires Node.js, but no node runtime was found for "${executablePath}". Set QMD executable path to an absolute qmd binary from your Node install.`,
-    );
-  }
-
-  private findCommonBinaryPath(commandName: string): string | null {
-    const candidates = [
-      path.join('/opt/homebrew/bin', commandName),
-      path.join('/usr/local/bin', commandName),
-      path.join(homedir(), '.bun', 'bin', commandName),
-      path.join(homedir(), 'bin', commandName),
-    ];
-
-    const nvmVersionsDir = path.join(homedir(), '.nvm', 'versions', 'node');
-    if (existsSync(nvmVersionsDir)) {
-      const versions = readdirSync(nvmVersionsDir).sort().reverse();
-      for (const version of versions) {
-        candidates.push(path.join(nvmVersionsDir, version, 'bin', commandName));
-      }
-    }
-
-    for (const candidate of candidates) {
-      if (existsSync(candidate)) {
-        return candidate;
-      }
-    }
-
-    return null;
-  }
-
-  private findInstalledQmdScript(): string | null {
-    const candidateRoots = [
-      path.join('/opt/homebrew', 'lib', 'node_modules'),
-      path.join('/usr/local', 'lib', 'node_modules'),
-      path.join(homedir(), '.bun', 'install', 'global', 'node_modules'),
-    ];
-
-    const nvmVersionsDir = path.join(homedir(), '.nvm', 'versions', 'node');
-    if (existsSync(nvmVersionsDir)) {
-      const versions = readdirSync(nvmVersionsDir).sort().reverse();
-      for (const version of versions) {
-        candidateRoots.push(path.join(nvmVersionsDir, version, 'lib', 'node_modules'));
-      }
-    }
-
-    for (const root of candidateRoots) {
-      const candidate = path.join(root, QMD_PACKAGE_SUBPATH);
-      if (existsSync(candidate)) {
-        return candidate;
+        // Missing shell (ENOENT) or command not found; try the next shell.
       }
     }
 
@@ -379,13 +234,13 @@ export class QmdProcessAdapter {
     return `'${value.replace(/'/g, `'\\''`)}'`;
   }
 
-  private normalizeError(error: unknown, resolvedExecutablePath: string, launchedFile: string): Error {
+  private normalizeError(error: unknown, resolvedExecutablePath: string): Error {
     const value = error as Error & { code?: string | number; errno?: number; stderr?: string; stdout?: string };
 
     if (value?.code === 'ENOENT') {
       const configured = this.executablePath.trim() || 'qmd';
       return new Error(
-        `QMD binary not found. Configured: "${configured}", resolved: "${resolvedExecutablePath}", launched: "${launchedFile}". Set an absolute path in QMD settings if needed.`,
+        `QMD binary not found. Configured: "${configured}", resolved: "${resolvedExecutablePath}". Set an absolute path in QMD settings if needed.`,
       );
     }
 

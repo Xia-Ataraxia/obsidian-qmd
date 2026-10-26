@@ -65,6 +65,12 @@ export interface NoteMetadata {
 /**
  * Minimal shim for obsidian's TFile — only the fields domain code needs.
  */
-export interface FileRef {
+export interface VaultNodeRef {
 	path: string;
+	name: string;
+	children?: VaultNodeRef[];
+}
+
+export interface FolderRef extends VaultNodeRef {
+	children: VaultNodeRef[];
 }

@@ -32,9 +32,9 @@ Desktop only, Obsidian 1.13.0 or later.
 
 - **Network use**: none from the plugin. It runs the local `qmd` command-line program on your machine; your notes are indexed and searched locally.
 - **Files outside the vault**: the `qmd` program keeps its own index outside the vault, as set by its own configuration.
-- **Local programs and files**: desktop only. The plugin starts the `qmd` program with Node's `child_process` and reads the filesystem only to locate it (common npm, bun, nvm and Homebrew install paths).
-- **Vault access**: lists vault files to map `qmd` results back to notes, because `qmd` returns slugified paths. The list is fetched only when a result is mapped, and again only after a note is created, renamed or deleted; never at startup or on a timer. It edits a note only when you insert a result link into it.
-- **Clipboard**: writes a note link only when you choose "Copy link" on a result.
+- **Local programs and files**: desktop only. The plugin runs the local `qmd` program with Node's `child_process` (it asks your login shell for `command -v qmd` when no path is set) and never reads the filesystem directly.
+- **Vault access**: never lists the whole vault. To map a `qmd` result (a slugified path) back to a note, it looks only at the folders on that result's path. It edits a note only when you insert a result link into it.
+- **Clipboard**: none. To use a result link, choose "Insert link" (right-click a result, or <kbd>Shift</kbd>+<kbd>Enter</kbd> in search), or drag the result into a note.
 - **Telemetry**: none.
 
 ## Development

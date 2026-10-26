@@ -1,7 +1,7 @@
 import { homedir } from 'os';
 import { MarkdownView, Plugin, TAbstractFile, TFile, setTooltip } from 'obsidian';
 import { AutoSyncController } from './domain/auto-sync';
-import { VaultPathResolver } from './domain/path-resolver';
+import { resolveSlugPath } from './domain/path-resolver';
 import { parseLegacyData } from './domain/legacy-data';
 import { DEFAULT_SETTINGS } from './domain/settings';
 import type {
@@ -32,10 +32,8 @@ const NOTICE_CATALOG: NoticeCatalog = {
   embed_error:            { template: "Couldn't build embeddings. Try again.", timeout: 6000 },
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
   resolve_error:          { template: 'Couldn\'t find "{{ name }}".', timeout: 4000, immutable: true },
-  wikilink_copied:        { template: 'Copied link.', timeout: 3000, immutable: true },
-  wikilink_copy_failed:   { template: "Couldn't copy the link.", timeout: 4000, immutable: true },
   wikilink_inserted:      { template: 'Inserted link to {{ name }}.', timeout: 3000, immutable: true },
-  no_active_editor:       { template: 'No active editor to insert link.', timeout: 4000, immutable: true },
+  no_active_editor:       { template: 'Open a note to insert the link.', timeout: 4000, immutable: true },
 };
 
 export default class QmdPlugin extends Plugin {
@@ -51,7 +49,6 @@ export default class QmdPlugin extends Plugin {
   private statusBarEl?: HTMLElement;
   private settingTab?: QmdSettingTab;
   private autoSync?: AutoSyncController;
-  private pathResolver = new VaultPathResolver();
   private unloading = false;
 
   async onload(): Promise<void> {
@@ -194,11 +191,9 @@ export default class QmdPlugin extends Plugin {
 
     const configuredValue = this.settings.qmdExecutablePath.trim();
     const autoDetect = configuredValue === '' || configuredValue.toLowerCase() === 'auto' || configuredValue === 'qmd';
-    const nodeRuntime = this.adapter.getResolvedNodePath();
     const modeLabel = autoDetect ? 'Auto-detected' : 'Configured';
-    const nodeLabel = nodeRuntime ? ` via ${tildify(nodeRuntime)}` : '';
 
-    return `${modeLabel} executable: ${tildify(resolvedBinary)}${nodeLabel}`;
+    return `${modeLabel} executable: ${tildify(resolvedBinary)}`;
   }
 
   async refreshBackendState(showNotice = false): Promise<void> {
@@ -331,11 +326,11 @@ export default class QmdPlugin extends Plugin {
       return null;
     }
 
-    this.pathResolver.rebuildIfDirty(() => this.app.vault.getFiles());
-    if (this.pathResolver.isAmbiguous(slugified)) {
+    const matches = resolveSlugPath(slugified, this.app.vault.getRoot());
+    if (matches.length > 1) {
       return null;
     }
-    return this.pathResolver.resolve(slugified) ?? slugified;
+    return matches[0] ?? slugified;
   }
 
   getResultFallbackTitle(result: QmdSearchResult): string {
@@ -439,19 +434,19 @@ export default class QmdPlugin extends Plugin {
 
     this.registerEvent(
       this.app.vault.on('create', (file) => {
-        this.handleVaultMutation(file, true);
+        this.handleVaultMutation(file);
       }),
     );
 
     this.registerEvent(
       this.app.vault.on('rename', (file) => {
-        this.handleVaultMutation(file, true);
+        this.handleVaultMutation(file);
       }),
     );
 
     this.registerEvent(
       this.app.vault.on('delete', (file) => {
-        this.handleVaultMutation(file, true);
+        this.handleVaultMutation(file);
       }),
     );
 
@@ -462,13 +457,11 @@ export default class QmdPlugin extends Plugin {
     );
   }
 
-  // Content edits don't change paths, so only create/rename/delete re-list the vault for result mapping.
-  private handleVaultMutation(file: TAbstractFile | null, pathChanged = false): void {
+  private handleVaultMutation(file: TAbstractFile | null): void {
     if (!(file instanceof TFile) || file.extension !== 'md') {
       return;
     }
 
-    if (pathChanged) this.pathResolver.markDirty();
     this.autoSync?.markDirty();
   }
 
