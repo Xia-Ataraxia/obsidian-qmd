@@ -1,10 +1,10 @@
-import { type HoverPopover, MarkdownView, Menu, Modal, Platform, setIcon, setTooltip } from 'obsidian';
+import { type HoverPopover, Menu, Modal, Platform, setIcon, setTooltip } from 'obsidian';
 import type QmdPlugin from '../main';
 import { SEARCH_MODE_DESCRIPTIONS, SEARCH_MODE_LABELS } from '../domain/settings';
 import { validateStructuredQueryDocument } from '../utils/parser';
 import type { QmdOpenTarget, QmdSearchMode, QmdSearchResult } from '../types';
 import { renderResultItem } from './result-renderer';
-import { buildResultLink } from './result-actions';
+import { insertResultLink } from './result-actions';
 
 const AUTO_SEARCH_DEBOUNCE_MS = 180;
 const SEARCH_MODE_ORDER: QmdSearchMode[] = ['keyword', 'semantic', 'hybrid', 'advanced'];
@@ -615,25 +615,7 @@ export class QmdSearchModal extends Modal {
 
 	private insertWikilinkForSelectedResult(): void {
 		const result = this.results[this.selectedIndex];
-		if (!result) {
-			return;
-		}
-
-		const relativePath = this.plugin.toVaultRelativePath(result.file);
-		if (!relativePath) {
-			this.plugin.notices.show('vault_map_error');
-			return;
-		}
-
-		const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!markdownView) {
-			this.plugin.notices.show('no_active_editor');
-			return;
-		}
-
-		const link = buildResultLink(this.plugin, relativePath);
-		markdownView.editor.replaceSelection(link);
-		this.plugin.notices.show('wikilink_inserted', { name: this.plugin.getResultFallbackTitle(result) });
+		if (result) insertResultLink(this.plugin, result);
 	}
 
 	private renderInstructions(): void {

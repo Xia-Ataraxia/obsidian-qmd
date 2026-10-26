@@ -1,4 +1,4 @@
-import { Menu, TFile } from 'obsidian';
+import { MarkdownView, Menu, TFile } from 'obsidian';
 import type QmdPlugin from '../main';
 import type { QmdSearchResult } from '../types';
 
@@ -48,10 +48,10 @@ export function showResultContextMenu(plugin: QmdPlugin, result: QmdSearchResult
 
   menu.addItem((item) =>
     item
-      .setTitle('Copy link')
+      .setTitle('Insert link')
       .setIcon('link')
       .onClick(() => {
-        void copyLink(plugin, relativePath);
+        insertResultLink(plugin, result);
       }),
   );
 
@@ -68,11 +68,20 @@ export function buildResultLink(plugin: QmdPlugin, relativePath: string): string
   return plugin.app.fileManager.generateMarkdownLink(file, sourcePath);
 }
 
-async function copyLink(plugin: QmdPlugin, relativePath: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(buildResultLink(plugin, relativePath));
-    plugin.notices.show('wikilink_copied');
-  } catch {
-    plugin.notices.show('wikilink_copy_failed');
+// Targets the most recent note editor, so it also works from the sidebar view where the active leaf isn't an editor.
+export function insertResultLink(plugin: QmdPlugin, result: QmdSearchResult): void {
+  const relativePath = plugin.toVaultRelativePath(result.file);
+  if (!relativePath) {
+    plugin.notices.show('vault_map_error');
+    return;
   }
+
+  const view = plugin.app.workspace.getMostRecentLeaf()?.view;
+  if (!(view instanceof MarkdownView)) {
+    plugin.notices.show('no_active_editor');
+    return;
+  }
+
+  view.editor.replaceSelection(buildResultLink(plugin, relativePath));
+  plugin.notices.show('wikilink_inserted', { name: plugin.getResultFallbackTitle(result) });
 }
