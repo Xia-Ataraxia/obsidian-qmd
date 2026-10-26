@@ -54,7 +54,7 @@ export default class QmdPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
 
-    this.adapter = new QmdProcessAdapter(this.settings.qmdExecutablePath, undefined, (message) => this.logger.debug(message));
+    this.adapter = new QmdProcessAdapter(this.settings.qmdExecutablePath);
     this.adapter.setWorkingDirectory(this.getVaultPath());
     this.autoSync = new AutoSyncController(this.settings.autoSyncDebounceMs, {
       shouldRun: () => this.canAutoSync(),

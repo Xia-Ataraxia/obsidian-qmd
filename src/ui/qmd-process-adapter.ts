@@ -26,12 +26,10 @@ export class QmdProcessAdapter {
   // The GUI app's PATH is minimal; the login shell's PATH lets `#!/usr/bin/env node` scripts find node.
   private loginShellPath: string | null = null;
   private workingDirectory: string | null = null;
-  private realPathUnavailableLogged = false;
 
   constructor(
     private executablePath: string,
     private readonly execFileAsync: ExecFileAsync = defaultExecFile,
-    private readonly debug: (message: string) => void = () => {},
   ) {}
 
   setExecutablePath(value: string): void {
@@ -223,7 +221,8 @@ export class QmdProcessAdapter {
     return null;
   }
 
-  // A vault or collection reached through a symlink only matches on real paths, so compare those after a direct miss.
+  // qmd stores collection paths with symlinks resolved (`collection add` saves the real path), so a vault opened
+  // through a symlink only matches after resolving the vault side; that runs only after a direct miss.
   private async findVaultCollection(
     candidates: QmdCollectionInfo[],
     vaultPath: string,
@@ -232,27 +231,16 @@ export class QmdProcessAdapter {
     const direct = candidates.find((collection) => normalizeFsPath(collection.path) === normalizedVaultPath);
     if (direct || candidates.length === 0) return direct;
 
-    if (process.platform === 'win32') {
-      if (!this.realPathUnavailableLogged) {
-        this.realPathUnavailableLogged = true;
-        this.debug('real-path fallback unavailable on this platform');
-      }
-      return undefined;
-    }
-
     const realVaultPath = await this.resolveRealDirectory(vaultPath);
-    if (!realVaultPath) return undefined;
-
-    for (const collection of candidates) {
-      if ((await this.resolveRealDirectory(collection.path)) === realVaultPath) return collection;
-    }
-    return undefined;
+    if (!realVaultPath || realVaultPath === normalizedVaultPath) return undefined;
+    return candidates.find((collection) => normalizeFsPath(collection.path) === realVaultPath);
   }
 
-  // `pwd -P` prints the directory with symlinks resolved, without reading the filesystem from the plugin.
+  // Scan-zero rule: `fs.realpath` would put Direct Filesystem Access in the bundle, so `pwd -P` (found on PATH, no shell)
+  // resolves symlinks instead.
   private async resolveRealDirectory(directory: string): Promise<string | null> {
     try {
-      const { stdout } = await this.execFileAsync('/bin/pwd', ['-P'], {
+      const { stdout } = await this.execFileAsync('pwd', ['-P'], {
         encoding: 'utf8',
         maxBuffer: 1024 * 1024,
         cwd: directory,
