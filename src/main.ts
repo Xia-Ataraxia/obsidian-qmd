@@ -63,7 +63,7 @@ export default class QmdPlugin extends Plugin {
     this.autoSync = new AutoSyncController(this.settings.autoSyncDebounceMs, {
       shouldRun: () => this.canAutoSync(),
       runUpdate: () => this.adapter.runUpdate(),
-      runEmbed: () => this.adapter.runEmbed(),
+      runEmbed: () => this.adapter.runEmbed(this.requireActiveCollection().name),
       onPhaseChange: (phase, message, error) => {
         if (error) this.logger.error('Auto-sync failed', { error });
         this.syncState = { phase, message, error };
@@ -479,7 +479,7 @@ export default class QmdPlugin extends Plugin {
       await this.adapter.checkBinary();
       this.syncState = { phase: 'syncing', message: 'Updating the search index\u2026' };
       this.refreshStatusBar();
-      await this.adapter.runAutoSync();
+      await this.adapter.runAutoSync(this.requireActiveCollection().name);
       this.syncState = { phase: 'idle', message: 'QMD ready' };
       this.refreshStatusBar();
       await this.refreshRelatedView();
@@ -509,7 +509,7 @@ export default class QmdPlugin extends Plugin {
       await this.adapter.checkBinary();
       this.syncState = { phase: 'embedding', message: 'Building embeddings\u2026' };
       this.refreshStatusBar();
-      await this.adapter.runEmbed();
+      await this.adapter.runEmbed(this.requireActiveCollection().name);
       this.syncState = { phase: 'idle', message: 'QMD ready' };
       this.refreshStatusBar();
       await this.refreshRelatedView();
