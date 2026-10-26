@@ -285,7 +285,8 @@ export class QmdSearchModal extends Modal {
 
 		if (event.key === 'Enter' && event.shiftKey && this.canOpenSelectedResult()) {
 			event.preventDefault();
-			this.insertWikilinkForSelectedResult();
+			// A held key auto-repeats; one press inserts one link.
+			if (!event.repeat) this.insertWikilinkForSelectedResult();
 			return;
 		}
 

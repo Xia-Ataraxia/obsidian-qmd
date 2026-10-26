@@ -46,8 +46,9 @@ export class PluginNotices {
       onMute: (noticeId) => void this.handleMute(noticeId),
     });
 
+    // A notice the user clicked away is hidden but still tracked; updating it would show nothing.
     const existing = this.active.get(id);
-    if (existing) {
+    if (existing?.containerEl.isConnected) {
       existing.setMessage(fragment);
       this.scheduleCleanup(id, timeout);
       return existing;
@@ -163,7 +164,9 @@ export class PluginNotices {
     }
     if (timeout <= 0) return;
 
+    // Notice keeps its constructor duration across setMessage, so hide here too: a persistent busy notice updated with a result must still expire.
     const timer = window.setTimeout(() => {
+      this.active.get(id)?.hide();
       this.active.delete(id);
       this.activeTimers.delete(id);
     }, timeout + 50);
