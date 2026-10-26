@@ -231,9 +231,9 @@
 .qmd-result-score {
 	font-size: var(--font-smallest);
 	font-variant-numeric: tabular-nums;
-	min-width: 34px;
+	/* Fixed width fits a bold "100%" so titles align on every row. */
+	flex: 0 0 3em;
 	text-align: right;
-	flex-shrink: 0;
 }
 .qmd-result-score--high { color: var(--interactive-accent); font-weight: 600; }
 .qmd-result-score--medium { color: var(--text-muted); }
