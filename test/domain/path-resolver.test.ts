@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { handelize, VaultPathResolver } from '../../src/domain/path-resolver';
 
 describe('handelize', () => {
@@ -60,16 +60,18 @@ describe('VaultPathResolver', () => {
 		const resolver = new VaultPathResolver();
 		const files = [makeTFile('test.md')];
 
-		resolver.rebuildIfDirty(files);
+		resolver.rebuildIfDirty(() => files);
 		expect(resolver.resolve('test.md')).toBe('test.md');
 
-		// After rebuild, not dirty — won't rebuild even with different files
-		resolver.rebuildIfDirty([makeTFile('other.md')] as never[]);
+		// After rebuild, not dirty — the file list isn't even requested
+		const listFiles = vi.fn(() => [makeTFile('other.md')] as never[]);
+		resolver.rebuildIfDirty(listFiles);
+		expect(listFiles).not.toHaveBeenCalled();
 		expect(resolver.resolve('test.md')).toBe('test.md');
 
 		// Mark dirty — next rebuildIfDirty will rebuild
 		resolver.markDirty();
-		resolver.rebuildIfDirty([makeTFile('other.md')] as never[]);
+		resolver.rebuildIfDirty(listFiles);
 		expect(resolver.resolve('test.md')).toBeNull();
 		expect(resolver.resolve('other.md')).toBe('other.md');
 	});
