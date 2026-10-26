@@ -186,7 +186,10 @@ export class QmdSettingTab extends PluginSettingTab {
       const line = frag.createDiv({ cls: `qmd-backend-status is-${tone}` });
       setIcon(line.createSpan({ cls: 'qmd-backend-status-icon' }), TONE_ICONS[tone]);
       line.createSpan({ text: tone === 'busy' || tone === 'error' ? this.plugin.syncState.message : this.plugin.describeBackend() });
-      frag.createDiv({ cls: 'qmd-backend-detail', text: this.plugin.describeExecutableResolution() });
+      // The engine path only helps when fixing setup or a failure.
+      if (tone === 'warning' || tone === 'error') {
+        frag.createDiv({ cls: 'qmd-backend-detail', text: this.plugin.describeExecutableResolution() });
+      }
     }));
     if (this.syncButton) {
       this.syncButton.disabled = tone === 'warning' || tone === 'busy';

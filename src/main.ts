@@ -100,6 +100,10 @@ export default class QmdPlugin extends Plugin {
       else if (this.syncState.phase === 'error') void this.runSyncNow();
       else QmdSearchModal.open(this, this.getActiveEditorSelection());
     });
+    // Drop the pulse once it plays, or a later state change (e.g. syncing -> error) would replay it.
+    this.registerDomEvent(this.statusBarEl, 'animationend', (event) => {
+      if (event.animationName.startsWith('qmd-status-done')) this.statusBarEl?.removeClass('qmd-status-bar--done');
+    });
     this.refreshStatusBar();
 
     await this.refreshBackendState();
@@ -275,11 +279,18 @@ export default class QmdPlugin extends Plugin {
     setTooltip(this.statusBarEl, `${detail}\n${hint}`, { placement: 'top' });
     this.statusBarEl.removeClasses(['is-setup', 'is-syncing', 'is-embedding', 'is-error']);
     if (state !== 'idle') this.statusBarEl.addClass(`is-${state}`);
-    if (changed) {
-      this.statusBarEl.removeClass('qmd-status-bar--swap');
-      void this.statusBarEl.offsetWidth;
-      this.statusBarEl.addClass('qmd-status-bar--swap');
-    }
+    if (changed) this.replayStatusBarAnimation('qmd-status-bar--swap');
+  }
+
+  private pulseStatusBar(): void {
+    this.replayStatusBarAnimation('qmd-status-bar--done');
+  }
+
+  private replayStatusBarAnimation(cls: string): void {
+    if (!this.statusBarEl) return;
+    this.statusBarEl.removeClass(cls);
+    void this.statusBarEl.offsetWidth;
+    this.statusBarEl.addClass(cls);
   }
 
   async search(mode: QmdSearchMode, query: string): Promise<QmdSearchResult[]> {
@@ -466,6 +477,7 @@ export default class QmdPlugin extends Plugin {
   }
 
   private async handleAutoSyncComplete(): Promise<void> {
+    this.pulseStatusBar();
     await this.refreshRelatedView();
   }
 
@@ -483,6 +495,7 @@ export default class QmdPlugin extends Plugin {
       await this.adapter.runAutoSync(this.requireActiveCollection().name);
       this.syncState = { phase: 'idle', message: 'QMD ready' };
       this.refreshStatusBar();
+      this.pulseStatusBar();
       await this.refreshRelatedView();
       this.notices.show('sync_complete');
     } catch (error) {
