@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildHighlightPattern,
   extractQueryTerms,
+  formatBreadcrumb,
   formatSnippet,
   parseCollectionList,
   parseCollectionShow,
@@ -12,6 +13,13 @@ import {
 } from '../../src/utils/parser';
 
 describe('qmd parser helpers', () => {
+  it('formats breadcrumbs for resolved and unresolved paths', () => {
+    expect(formatBreadcrumb('notes/sub/note.md')).toBe('notes > sub');
+    expect(formatBreadcrumb('note.md')).toBe('');
+    expect(formatBreadcrumb('qmd://qmdzero/notes/my-note.md')).toBe('qmdzero > notes');
+    expect(formatBreadcrumb('qmd://qmdzero/top.md')).toBe('qmdzero');
+  });
+
   it('parses collection list output', () => {
     const stdout = [
       'Collections (2):',

@@ -1,8 +1,7 @@
 import type { HoverParent } from 'obsidian';
 import type QmdPlugin from '../main';
-import { formatSnippet } from '../utils/parser';
+import { extractQueryTerms, formatBreadcrumb, formatSnippet } from '../utils/parser';
 import { highlightSnippet } from './highlight';
-import { extractQueryTerms } from '../utils/parser';
 import type { QmdOpenTarget, QmdSearchResult } from '../types';
 import { buildResultLink, showResultContextMenu } from './result-actions';
 
@@ -12,12 +11,6 @@ function scoreTier(score: number): ScoreTier {
 	if (score >= 0.85) return 'high';
 	if (score >= 0.7) return 'medium';
 	return 'low';
-}
-
-function formatBreadcrumb(path: string): string {
-	const parts = path.split('/');
-	parts.pop();
-	return parts.length > 0 ? parts.join(' > ') : '';
 }
 
 export interface RenderResultOptions {
