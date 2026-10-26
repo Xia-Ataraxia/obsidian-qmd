@@ -93,7 +93,8 @@ export default class QmdPlugin extends Plugin {
     this.statusBarEl = this.addStatusBarItem();
     this.statusBarEl.addClasses(['qmd-status-bar', 'mod-clickable']);
     this.registerDomEvent(this.statusBarEl, 'click', () => {
-      if (this.setupMessage || this.syncState.phase === 'error') this.openSettings();
+      if (this.setupMessage) this.openSettings();
+      else if (this.syncState.phase === 'error') void this.runSyncNow();
       else QmdSearchModal.open(this, this.getActiveEditorSelection());
     });
     this.refreshStatusBar();
@@ -265,7 +266,7 @@ export default class QmdPlugin extends Plugin {
 
     const changed = this.statusBarEl.getText() !== label;
     this.statusBarEl.setText(label);
-    const hint = this.setupMessage || state === 'error' ? 'Click to open settings.' : 'Click to search.';
+    const hint = this.setupMessage ? 'Click to open settings.' : state === 'error' ? 'Click to sync again.' : 'Click to search.';
     setTooltip(this.statusBarEl, `${detail}\n${hint}`, { placement: 'top' });
     this.statusBarEl.removeClasses(['is-setup', 'is-syncing', 'is-embedding', 'is-error']);
     if (state !== 'idle') this.statusBarEl.addClass(`is-${state}`);
