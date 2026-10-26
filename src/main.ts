@@ -1,4 +1,4 @@
-import { MarkdownView, Plugin, TAbstractFile, TFile } from 'obsidian';
+import { MarkdownView, Plugin, TAbstractFile, TFile, setTooltip } from 'obsidian';
 import { AutoSyncController } from './domain/auto-sync';
 import { VaultPathResolver } from './domain/path-resolver';
 import { parseLegacyData } from './domain/legacy-data';
@@ -24,12 +24,12 @@ import type { NoticeCatalog, PluginNoticesHost } from './ui/plugin-notice-types'
 const NOTICE_CATALOG: NoticeCatalog = {
   backend_status:         { template: '{{ message }}', timeout: 5000 },
   setup_error:            { template: '{{ message }}', timeout: 5000 },
-  sync_complete:          { template: 'QMD sync complete.', timeout: 4000 },
-  sync_error:             { template: '{{ message }}', timeout: 6000 },
-  update_complete:        { template: 'qmd update complete.', timeout: 4000 },
-  update_error:           { template: '{{ message }}', timeout: 6000 },
-  embed_complete:         { template: 'qmd embed complete.', timeout: 4000 },
-  embed_error:            { template: '{{ message }}', timeout: 6000 },
+  sync_complete:          { template: 'Search index is up to date.', timeout: 4000 },
+  sync_error:             { template: "Couldn't sync the search index. Try again.", timeout: 6000 },
+  update_complete:        { template: 'Search index updated.', timeout: 4000 },
+  update_error:           { template: "Couldn't update the search index. Try again.", timeout: 6000 },
+  embed_complete:         { template: 'Embeddings are up to date.', timeout: 4000 },
+  embed_error:            { template: "Couldn't build embeddings. Try again.", timeout: 6000 },
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
   resolve_error:          { template: 'Could not find "{{ name }}".', timeout: 4000, immutable: true },
   wikilink_copied:        { template: 'Copied link.', timeout: 3000, immutable: true },
@@ -45,7 +45,7 @@ export default class QmdPlugin extends Plugin {
   activeCollection: QmdCollectionInfo | null = null;
   syncState: SyncState = { phase: 'idle', message: 'QMD ready' };
 
-  readonly notices = new PluginNotices(this as unknown as PluginNoticesHost, NOTICE_CATALOG, 'QMD');
+  readonly notices = new PluginNotices(this as unknown as PluginNoticesHost, NOTICE_CATALOG, this.manifest.name);
   readonly logger = new PluginLogger('QMD');
   private setupMessage: string | null = null;
   private statusBarEl?: HTMLElement;
@@ -63,6 +63,7 @@ export default class QmdPlugin extends Plugin {
       runUpdate: () => this.adapter.runUpdate(),
       runEmbed: () => this.adapter.runEmbed(),
       onPhaseChange: (phase, message, error) => {
+        if (error) this.logger.error('Auto-sync failed', { error });
         this.syncState = { phase, message, error };
         this.refreshStatusBar();
       },
@@ -91,7 +92,12 @@ export default class QmdPlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => this.registerVaultWatchers());
 
     this.statusBarEl = this.addStatusBarItem();
-    this.statusBarEl.addClass('qmd-status-bar');
+    this.statusBarEl.addClasses(['qmd-status-bar', 'mod-clickable']);
+    this.registerDomEvent(this.statusBarEl, 'click', () => {
+      if (this.setupMessage) this.openSettings();
+      else if (this.syncState.phase === 'error') void this.runSyncNow();
+      else QmdSearchModal.open(this, this.getActiveEditorSelection());
+    });
     this.refreshStatusBar();
 
     await this.refreshBackendState();
@@ -171,7 +177,7 @@ export default class QmdPlugin extends Plugin {
       return 'QMD is ready, but no collection is active yet.';
     }
 
-    return `Using qmd collection "${this.activeCollection.name}" for ${this.activeCollection.path}`;
+    return `Using the "${this.activeCollection.name}" collection.`;
   }
 
   describeExecutableResolution(): string {
@@ -211,7 +217,8 @@ export default class QmdPlugin extends Plugin {
     } catch (error) {
       this.collections = [];
       this.activeCollection = null;
-      this.setupMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('QMD setup check failed', { error: error instanceof Error ? error.message : String(error) });
+      this.setupMessage = "Couldn't start QMD. Check the executable path in settings.";
     }
 
     if (!this.setupMessage && this.syncState.phase !== 'error') {
@@ -254,14 +261,15 @@ export default class QmdPlugin extends Plugin {
     } else if (this.syncState.phase === 'error') {
       label = 'QMD: Error';
       state = 'error';
-      detail = this.syncState.error ?? this.syncState.message;
+      detail = this.syncState.message;
     } else if (this.activeCollection) {
       label = `QMD: ${this.activeCollection.name}`;
     }
 
     const changed = this.statusBarEl.getText() !== label;
     this.statusBarEl.setText(label);
-    this.statusBarEl.title = detail;
+    const hint = this.setupMessage ? 'Click to open settings.' : state === 'error' ? 'Click to sync again.' : 'Click to search.';
+    setTooltip(this.statusBarEl, `${detail}\n${hint}`, { placement: 'top' });
     this.statusBarEl.removeClasses(['is-setup', 'is-syncing', 'is-embedding', 'is-error']);
     if (state !== 'idle') this.statusBarEl.addClass(`is-${state}`);
     if (changed) {
@@ -465,7 +473,7 @@ export default class QmdPlugin extends Plugin {
 
     try {
       await this.adapter.checkBinary();
-      this.syncState = { phase: 'syncing', message: 'Running qmd update...' };
+      this.syncState = { phase: 'syncing', message: 'Updating the search index\u2026' };
       this.refreshStatusBar();
       await this.adapter.runAutoSync();
       this.syncState = { phase: 'idle', message: 'QMD ready' };
@@ -473,39 +481,29 @@ export default class QmdPlugin extends Plugin {
       await this.refreshRelatedView();
       this.notices.show('sync_complete');
     } catch (error) {
-      this.syncState = {
-        phase: 'error',
-        message: 'qmd sync failed',
-        error: error instanceof Error ? error.message : String(error),
-      };
-      this.refreshStatusBar();
-      this.notices.show('sync_error', { message: this.syncState.error ?? 'QMD sync failed.' });
+      this.failSync("Couldn't sync the search index.", error);
+      this.notices.show('sync_error');
     }
   }
 
   private async runUpdateCommand(): Promise<void> {
     try {
       await this.adapter.checkBinary();
-      this.syncState = { phase: 'syncing', message: 'Running qmd update...' };
+      this.syncState = { phase: 'syncing', message: 'Updating the search index\u2026' };
       this.refreshStatusBar();
       await this.adapter.runUpdate();
       await this.refreshBackendState();
       this.notices.show('update_complete');
     } catch (error) {
-      this.syncState = {
-        phase: 'error',
-        message: 'qmd update failed',
-        error: error instanceof Error ? error.message : String(error),
-      };
-      this.refreshStatusBar();
-      this.notices.show('update_error', { message: this.syncState.error ?? 'qmd update failed.' });
+      this.failSync("Couldn't update the search index.", error);
+      this.notices.show('update_error');
     }
   }
 
   private async runEmbedCommand(): Promise<void> {
     try {
       await this.adapter.checkBinary();
-      this.syncState = { phase: 'embedding', message: 'Running qmd embed...' };
+      this.syncState = { phase: 'embedding', message: 'Building embeddings\u2026' };
       this.refreshStatusBar();
       await this.adapter.runEmbed();
       this.syncState = { phase: 'idle', message: 'QMD ready' };
@@ -513,14 +511,16 @@ export default class QmdPlugin extends Plugin {
       await this.refreshRelatedView();
       this.notices.show('embed_complete');
     } catch (error) {
-      this.syncState = {
-        phase: 'error',
-        message: 'qmd embed failed',
-        error: error instanceof Error ? error.message : String(error),
-      };
-      this.refreshStatusBar();
-      this.notices.show('embed_error', { message: this.syncState.error ?? 'qmd embed failed.' });
+      this.failSync("Couldn't build embeddings.", error);
+      this.notices.show('embed_error');
     }
+  }
+
+  private failSync(message: string, error: unknown): void {
+    const detail = error instanceof Error ? error.message : String(error);
+    this.logger.error(message, { error: detail });
+    this.syncState = { phase: 'error', message, error: detail };
+    this.refreshStatusBar();
   }
 
   private requireActiveCollection(): QmdCollectionInfo {

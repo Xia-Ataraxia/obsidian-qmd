@@ -69,15 +69,15 @@ export class AutoSyncController {
 		this.rerun = false;
 
 		try {
-			this.callbacks.onPhaseChange?.('syncing', 'Running qmd update...');
+			this.callbacks.onPhaseChange?.('syncing', 'Updating the search index\u2026');
 			await this.callbacks.runUpdate();
-			this.callbacks.onPhaseChange?.('embedding', 'Running qmd embed...');
+			this.callbacks.onPhaseChange?.('embedding', 'Building embeddings\u2026');
 			await this.callbacks.runEmbed();
 			this.callbacks.onPhaseChange?.('idle', 'QMD ready');
 			this.callbacks.onComplete?.();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			this.callbacks.onPhaseChange?.('error', 'QMD sync failed', message);
+			this.callbacks.onPhaseChange?.('error', "Couldn't sync the search index.", message);
 		} finally {
 			this.running = false;
 			if ((this.rerun || this.dirty) && !this.disposed) {

@@ -74,7 +74,7 @@ export class QmdProcessAdapter {
       return {
         collections,
         resolved: null,
-        error: 'No qmd collections found. Create one for this vault before using the plugin.',
+        error: 'No QMD collections yet. Add this vault as a collection in QMD.',
       };
     }
 
@@ -84,7 +84,7 @@ export class QmdProcessAdapter {
         return {
           collections,
           resolved: null,
-          error: `Configured collection "${overrideName.trim()}" was not found in qmd.`,
+          error: `The collection "${overrideName.trim()}" set in settings doesn't exist in QMD.`,
         };
       }
 
@@ -92,7 +92,7 @@ export class QmdProcessAdapter {
         return {
           collections,
           resolved: null,
-          error: `Collection "${selected.name}" points to ${selected.path}, not this vault.`,
+          error: `The collection "${selected.name}" belongs to another folder.`,
         };
       }
 
@@ -104,7 +104,7 @@ export class QmdProcessAdapter {
       return {
         collections,
         resolved: null,
-        error: `No qmd collection matches this vault path: ${vaultPath}`,
+        error: 'No QMD collection matches this vault yet. Add this vault as a collection in QMD.',
       };
     }
 
