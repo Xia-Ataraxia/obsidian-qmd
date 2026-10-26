@@ -1,7 +1,7 @@
 {
 	"id": "qmd",
 	"name": "QMD Search",
-	"version": "1.5.0",
+	"version": "1.5.1",
 	"minAppVersion": "1.13.0",
 	"description": "Local QMD search, related notes, and autosync for your vault.",
 	"author": "Beomsu Koh",
