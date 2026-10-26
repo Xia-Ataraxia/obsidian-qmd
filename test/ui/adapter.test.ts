@@ -1,22 +1,8 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import * as path from 'path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { QmdProcessAdapter } from '../../src/ui/qmd-process-adapter';
 
 describe('QmdProcessAdapter', () => {
-  const tempDirs: string[] = [];
-
-  afterEach(() => {
-    while (tempDirs.length > 0) {
-      const dir = tempDirs.pop();
-      if (dir) {
-        rmSync(dir, { recursive: true, force: true });
-      }
-    }
-  });
-
   it('scopes auto-sync embedding to the given collection', async () => {
     const execFileAsync = vi.fn(() => ({ stdout: '', stderr: '' }));
     const adapter = new QmdProcessAdapter('amd', execFileAsync as never);
@@ -68,58 +54,45 @@ describe('QmdProcessAdapter', () => {
     expect(resolved.error).toBeUndefined();
   });
 
-  it('launches node explicitly for a node-backed qmd binary', async () => {
-    const tempDir = mkdtempSync(path.join(tmpdir(), 'qmd-adapter-'));
-    tempDirs.push(tempDir);
+  it('uses a configured path directly without asking the login shell', async () => {
+    const execFileAsync = vi.fn(async (_file: string, _args: string[], _options: { env?: Record<string, string | undefined> }) => ({ stdout: '', stderr: '' }));
+    const adapter = new QmdProcessAdapter('/opt/qmd/bin/qmd', execFileAsync);
 
-    const binDir = path.join(tempDir, 'bin');
-    mkdirSync(binDir);
+    await adapter.checkBinary();
 
-    const qmdPath = path.join(binDir, 'qmd');
-    const nodePath = path.join(binDir, 'node');
-    writeFileSync(qmdPath, '#!/usr/bin/env node\nconsole.log("qmd");\n', 'utf8');
-    writeFileSync(nodePath, '#!/bin/sh\nexit 0\n', 'utf8');
-    chmodSync(qmdPath, 0o755);
-    chmodSync(nodePath, 0o755);
+    expect(execFileAsync).toHaveBeenCalledTimes(1);
+    expect(execFileAsync).toHaveBeenCalledWith('/opt/qmd/bin/qmd', ['--help'], expect.anything());
+  });
 
-    const execFileAsync = vi.fn((file: string, args: string[]) => {
-      if ((file === '/bin/zsh' || file === '/bin/bash') && args.includes('-lc')) {
-        return {
-          stdout: `${qmdPath}\n`,
-          stderr: '',
-        };
-      }
-
-      return {
-        stdout: JSON.stringify([]),
-        stderr: '',
-      };
-    });
-
-    const adapter = new QmdProcessAdapter('qmd', execFileAsync as never);
+  it('resolves qmd through the login shell and runs it with that PATH', async () => {
+    const execFileAsync = vi.fn(async (file: string, _args: string[]) =>
+      file === '/bin/zsh'
+        ? { stdout: 'rc noise\n/usr/bin:/bin\n/Users/test/.bun/bin/qmd\n', stderr: '' }
+        : { stdout: JSON.stringify([]), stderr: '' },
+    );
+    const adapter = new QmdProcessAdapter('qmd', execFileAsync);
     adapter.setWorkingDirectory('/Users/test/Vault');
+
     await adapter.keywordSearch('search terms', 'obsidian', 5);
 
+    expect(adapter.getResolvedExecutablePath()).toBe('/Users/test/.bun/bin/qmd');
     expect(execFileAsync).toHaveBeenLastCalledWith(
-      nodePath,
-      [
-        qmdPath,
-        'search',
-        'search terms',
-        '-c',
-        'obsidian',
-        '--json',
-        '-n',
-        '5',
-      ],
+      '/Users/test/.bun/bin/qmd',
+      ['search', 'search terms', '-c', 'obsidian', '--json', '-n', '5'],
       expect.objectContaining({
-        encoding: 'utf8',
         cwd: '/Users/test/Vault',
-        env: expect.objectContaining({
-          PWD: '/Users/test/Vault',
-        }),
+        env: expect.objectContaining({ PWD: '/Users/test/Vault', PATH: '/Users/test/.bun/bin:/usr/bin:/bin' }),
       }),
     );
+  });
+
+  it('puts the binary folder first on PATH so a node-shebang qmd finds its node', async () => {
+    const execFileAsync = vi.fn(async (_file: string, _args: string[], _options: { env?: Record<string, string | undefined> }) => ({ stdout: '', stderr: '' }));
+    const adapter = new QmdProcessAdapter('/Users/test/.nvm/versions/node/v22/bin/qmd', execFileAsync);
+
+    await adapter.checkBinary();
+
+    expect(execFileAsync.mock.calls[0]?.[2].env?.PATH?.split(':')[0]).toBe('/Users/test/.nvm/versions/node/v22/bin');
   });
 
   it('reports configured and resolved paths when an explicit binary is missing', async () => {

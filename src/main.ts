@@ -33,7 +33,7 @@ const NOTICE_CATALOG: NoticeCatalog = {
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
   resolve_error:          { template: 'Couldn\'t find "{{ name }}".', timeout: 4000, immutable: true },
   wikilink_inserted:      { template: 'Inserted link to {{ name }}.', timeout: 3000, immutable: true },
-  no_active_editor:       { template: 'No active editor to insert link.', timeout: 4000, immutable: true },
+  no_active_editor:       { template: 'Open a note to insert the link.', timeout: 4000, immutable: true },
 };
 
 export default class QmdPlugin extends Plugin {
@@ -191,11 +191,9 @@ export default class QmdPlugin extends Plugin {
 
     const configuredValue = this.settings.qmdExecutablePath.trim();
     const autoDetect = configuredValue === '' || configuredValue.toLowerCase() === 'auto' || configuredValue === 'qmd';
-    const nodeRuntime = this.adapter.getResolvedNodePath();
     const modeLabel = autoDetect ? 'Auto-detected' : 'Configured';
-    const nodeLabel = nodeRuntime ? ` via ${tildify(nodeRuntime)}` : '';
 
-    return `${modeLabel} executable: ${tildify(resolvedBinary)}${nodeLabel}`;
+    return `${modeLabel} executable: ${tildify(resolvedBinary)}`;
   }
 
   async refreshBackendState(showNotice = false): Promise<void> {
