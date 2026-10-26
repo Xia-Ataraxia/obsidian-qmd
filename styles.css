@@ -120,8 +120,8 @@
 	transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 .qmd-search-input-row:focus-within {
-	border-color: var(--background-modifier-border-focus);
-	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 20%, transparent);
 }
 .qmd-search-icon { color: var(--interactive-accent); }
 /* Out-specify Obsidian's input[type='text'] chrome so the row draws the only focus ring. */
