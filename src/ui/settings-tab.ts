@@ -100,7 +100,7 @@ export class QmdSettingTab extends PluginSettingTab {
         items: [
           {
             name: 'Auto-sync',
-            desc: 'Update the search index and embeddings after vault changes.',
+            desc: 'Update the search index after vault changes, then build embeddings for the active collection.',
             control: { type: 'toggle', key: 'autoSyncEnabled' },
           },
           {

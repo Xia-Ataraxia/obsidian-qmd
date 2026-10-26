@@ -17,6 +17,16 @@ describe('QmdProcessAdapter', () => {
     }
   });
 
+  it('scopes auto-sync embedding to the given collection', async () => {
+    const execFileAsync = vi.fn(() => ({ stdout: '', stderr: '' }));
+    const adapter = new QmdProcessAdapter('amd', execFileAsync as never);
+
+    await adapter.runAutoSync('docs');
+
+    const calls = execFileAsync.mock.calls.map((call) => (call as unknown as [string, string[]])[1].join(' '));
+    expect(calls.filter((args) => args.includes('update') || args.includes('embed'))).toEqual(['update', 'embed -c docs']);
+  });
+
   it('resolves the collection whose path matches the current vault', async () => {
     const execFileAsync = vi.fn((_file: string, args: string[]) => {
       if (args[0] === '--help') {

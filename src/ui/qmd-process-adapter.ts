@@ -10,6 +10,7 @@ import {
   parseCollectionShow,
   parseSearchResults,
 } from '../utils/parser';
+import { buildEmbedArgs, buildUpdateArgs } from '../utils/sync-args';
 
 type ExecFileAsync = (
   file: string,
@@ -128,16 +129,16 @@ export class QmdProcessAdapter {
   }
 
   async runUpdate(): Promise<void> {
-    await this.run(['update']);
+    await this.run(buildUpdateArgs());
   }
 
-  async runEmbed(): Promise<void> {
-    await this.run(['embed']);
+  async runEmbed(collectionName: string): Promise<void> {
+    await this.run(buildEmbedArgs(collectionName));
   }
 
-  async runAutoSync(): Promise<void> {
+  async runAutoSync(collectionName: string): Promise<void> {
     await this.runUpdate();
-    await this.runEmbed();
+    await this.runEmbed(collectionName);
   }
 
   private async getCollections(): Promise<QmdCollectionInfo[]> {
