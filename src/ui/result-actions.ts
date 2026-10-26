@@ -48,21 +48,29 @@ export function showResultContextMenu(plugin: QmdPlugin, result: QmdSearchResult
 
   menu.addItem((item) =>
     item
-      .setTitle('Copy wikilink')
+      .setTitle('Copy link')
       .setIcon('link')
       .onClick(() => {
-        void copyWikilink(plugin, relativePath);
+        void copyLink(plugin, relativePath);
       }),
   );
 
   menu.showAtMouseEvent(event);
 }
 
-async function copyWikilink(plugin: QmdPlugin, relativePath: string): Promise<void> {
-  const wikilink = `[[${relativePath.replace(/\.md$/, '')}]]`;
+// Follows the vault's link settings (wikilink vs Markdown, shortest vs full path) relative to the active note.
+export function buildResultLink(plugin: QmdPlugin, relativePath: string): string {
+  const file = plugin.app.vault.getAbstractFileByPath(relativePath);
+  if (!(file instanceof TFile)) {
+    return `[[${relativePath.replace(/\.md$/, '')}]]`;
+  }
+  const sourcePath = plugin.app.workspace.getActiveFile()?.path ?? '';
+  return plugin.app.fileManager.generateMarkdownLink(file, sourcePath);
+}
 
+async function copyLink(plugin: QmdPlugin, relativePath: string): Promise<void> {
   try {
-    await navigator.clipboard.writeText(wikilink);
+    await navigator.clipboard.writeText(buildResultLink(plugin, relativePath));
     plugin.notices.show('wikilink_copied');
   } catch {
     plugin.notices.show('wikilink_copy_failed');
