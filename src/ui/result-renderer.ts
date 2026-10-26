@@ -35,7 +35,8 @@ export interface RenderResultOptions {
 export function renderResultItem(opts: RenderResultOptions): HTMLElement {
 	const { plugin, result, index, container, sourceId, hoverParent, onSelect, onOpen } = opts;
 	const tier = scoreTier(result.score);
-	const pct = `${Math.round(result.score * 100)}%`;
+	// BM25 keyword hits report 0; an empty score reads better than a column of "0%".
+	const pct = result.score > 0 ? `${Math.round(result.score * 100)}%` : '';
 	const title = result.title || plugin.getResultFallbackTitle(result);
 	const relativePath = plugin.toVaultRelativePath(result.file) ?? result.file;
 	const breadcrumb = formatBreadcrumb(relativePath);
@@ -46,10 +47,9 @@ export function renderResultItem(opts: RenderResultOptions): HTMLElement {
 			role: 'listitem',
 			tabindex: '0',
 			draggable: 'true',
-			'aria-label': `${title} \u2014 ${pct}`,
+			'aria-label': pct ? `${title} \u2014 ${pct}` : title,
 		},
 	});
-	el.setCssProps({ '--qmd-result-delay': `${Math.min(index * 25, 500)}ms` });
 
 	// Score on the LEFT (SC-style)
 	el.createSpan({
@@ -68,7 +68,7 @@ export function renderResultItem(opts: RenderResultOptions): HTMLElement {
 		body.createDiv({ cls: 'qmd-result-path', text: breadcrumb });
 	}
 
-	const snippet = formatSnippet(result.snippet);
+	const snippet = formatSnippet(result.snippet, title);
 	if (snippet) {
 		const snippetEl = body.createDiv({ cls: 'qmd-result-snippet' });
 		if (opts.queryText) {

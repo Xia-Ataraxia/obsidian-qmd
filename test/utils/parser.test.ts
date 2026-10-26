@@ -73,6 +73,8 @@ describe('qmd parser helpers', () => {
 
   it('formats snippets for display', () => {
     expect(formatSnippet('@@ -1,2 @@\n\nHello   world')).toBe('Hello world');
+    expect(formatSnippet('# Daily\nMade coffee.', 'Daily')).toBe('Made coffee.');
+    expect(formatSnippet('## Brewing\nUse 18g.', 'Coffee')).toBe('Brewing Use 18g.');
   });
 
   it('validates structured query documents', () => {

@@ -102,16 +102,18 @@ export function toVaultRelativePath(value: string, collectionName: string): stri
 
 const FRONTMATTER_KEY_RE = /^(?:aliases|tags|date_created|date_modified|cssclasses|publish|file_class|up|related|source|author|status|type|category|rating|title|description|created|modified|updated|permalink|banner|cover|image|draft|lang|weight|slug|template|parent|children|prev|next|sidebar_position|hide_table_of_contents)\s*:/i;
 
-export function formatSnippet(snippet: string): string {
-	return snippet
+export function formatSnippet(snippet: string, title?: string): string {
+	const lines = snippet
 		.replace(/^@@.*$/gm, '')
 		.replace(/^---[\s\S]*?---/m, '')
 		.replace(/^---\s*$/gm, '')
 		.split('\n')
 		.filter((line) => !FRONTMATTER_KEY_RE.test(line.trim()))
-		.join('\n')
-		.replace(/\s+/g, ' ')
-		.trim();
+		.map((line) => line.replace(/^\s*#{1,6}\s+/, '').trim())
+		.filter(Boolean);
+	// The title row already shows the note's H1, so don't repeat it.
+	if (title && lines[0]?.toLowerCase() === title.trim().toLowerCase()) lines.shift();
+	return lines.join(' ').replace(/\s+/g, ' ').trim();
 }
 
 const STOP_WORDS = new Set([

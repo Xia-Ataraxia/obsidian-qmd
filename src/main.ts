@@ -149,6 +149,15 @@ export default class QmdPlugin extends Plugin {
     void this.saveSettings();
   }
 
+  openSettings(): void {
+    // app.setting is internal; guard each call so a future rename only no-ops.
+    const setting = (this.app as typeof this.app & {
+      setting?: { open?: () => void; openTabById?: (id: string) => void };
+    }).setting;
+    setting?.open?.();
+    setting?.openTabById?.(this.manifest.id);
+  }
+
   getSetupMessage(): string | null {
     return this.setupMessage;
   }
