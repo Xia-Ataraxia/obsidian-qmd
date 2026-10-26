@@ -565,7 +565,7 @@ export class QmdSearchModal extends Modal {
 		this.results = [];
 		this.renderEmptyState(message, {
 			icon: 'alert-circle',
-			action: { label: 'Open settings', onClick: () => this.plugin.openSettings() },
+			action: { label: 'Open settings', onClick: () => { this.close(); this.plugin.openSettings(); } },
 		});
 	}
 
