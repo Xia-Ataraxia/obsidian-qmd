@@ -1,4 +1,4 @@
-import { MarkdownView, Plugin, TAbstractFile, TFile } from 'obsidian';
+import { MarkdownView, Plugin, TAbstractFile, TFile, setTooltip } from 'obsidian';
 import { AutoSyncController } from './domain/auto-sync';
 import { VaultPathResolver } from './domain/path-resolver';
 import { parseLegacyData } from './domain/legacy-data';
@@ -26,9 +26,9 @@ const NOTICE_CATALOG: NoticeCatalog = {
   setup_error:            { template: '{{ message }}', timeout: 5000 },
   sync_complete:          { template: 'QMD sync complete.', timeout: 4000 },
   sync_error:             { template: '{{ message }}', timeout: 6000 },
-  update_complete:        { template: 'qmd update complete.', timeout: 4000 },
+  update_complete:        { template: 'QMD update complete.', timeout: 4000 },
   update_error:           { template: '{{ message }}', timeout: 6000 },
-  embed_complete:         { template: 'qmd embed complete.', timeout: 4000 },
+  embed_complete:         { template: 'QMD embed complete.', timeout: 4000 },
   embed_error:            { template: '{{ message }}', timeout: 6000 },
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
   resolve_error:          { template: 'Could not find "{{ name }}".', timeout: 4000, immutable: true },
@@ -91,7 +91,11 @@ export default class QmdPlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => this.registerVaultWatchers());
 
     this.statusBarEl = this.addStatusBarItem();
-    this.statusBarEl.addClass('qmd-status-bar');
+    this.statusBarEl.addClasses(['qmd-status-bar', 'mod-clickable']);
+    this.registerDomEvent(this.statusBarEl, 'click', () => {
+      if (this.setupMessage || this.syncState.phase === 'error') this.openSettings();
+      else QmdSearchModal.open(this, this.getActiveEditorSelection());
+    });
     this.refreshStatusBar();
 
     await this.refreshBackendState();
@@ -171,7 +175,7 @@ export default class QmdPlugin extends Plugin {
       return 'QMD is ready, but no collection is active yet.';
     }
 
-    return `Using qmd collection "${this.activeCollection.name}" for ${this.activeCollection.path}`;
+    return `Using the "${this.activeCollection.name}" collection.`;
   }
 
   describeExecutableResolution(): string {
@@ -261,7 +265,8 @@ export default class QmdPlugin extends Plugin {
 
     const changed = this.statusBarEl.getText() !== label;
     this.statusBarEl.setText(label);
-    this.statusBarEl.title = detail;
+    const hint = this.setupMessage || state === 'error' ? 'Click to open settings.' : 'Click to search.';
+    setTooltip(this.statusBarEl, `${detail}\n${hint}`, { placement: 'top' });
     this.statusBarEl.removeClasses(['is-setup', 'is-syncing', 'is-embedding', 'is-error']);
     if (state !== 'idle') this.statusBarEl.addClass(`is-${state}`);
     if (changed) {

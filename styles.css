@@ -35,7 +35,7 @@
 /* Plugin notices */
 .plugin-notice {
 	display: grid;
-	gap: 6px;
+	gap: var(--size-2-3);
 }
 
 .plugin-notice-head {
@@ -55,15 +55,15 @@
 .plugin-notice-actions {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--size-2-3);
 }
 
 .plugin-notice-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 4px;
-	padding: 4px 10px;
+	gap: var(--size-2-2);
+	padding: var(--size-2-2) var(--size-4-3);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 999px;
 	background: var(--background-secondary);
@@ -71,17 +71,18 @@
 	cursor: pointer;
 }
 
-.plugin-notice-btn:hover {
+.plugin-notice-btn:hover,
+.plugin-notice-btn:focus-visible {
 	background: var(--background-modifier-hover);
 }
 
 .plugin-notice-btn--mute {
-	padding-inline: 8px;
+	padding-inline: var(--size-4-2);
 }
 
 .plugin-notice-btn--mute svg {
-	width: 14px;
-	height: 14px;
+	width: var(--icon-s);
+	height: var(--icon-s);
 }
 
 /* Search Modal */

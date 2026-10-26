@@ -1,4 +1,4 @@
-import { setIcon } from 'obsidian';
+import { setIcon, setTooltip } from 'obsidian';
 
 interface BuildNoticeFragmentOptions {
   id: string;
@@ -42,7 +42,7 @@ function createActionButton(text: string, callback: () => void): HTMLButtonEleme
 
 function createMuteButton(id: string, onMute: (id: string) => void): HTMLButtonElement {
   const button = createEl('button', { cls: 'plugin-notice-btn plugin-notice-btn--mute', type: 'button' });
-  button.setAttribute('aria-label', `Mute notice: ${id}`);
+  setTooltip(button, 'Mute this notice');
   setIcon(button, 'bell-off');
   button.addEventListener('click', () => onMute(id));
   return button;

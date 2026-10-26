@@ -7,7 +7,7 @@ import type {
 } from './plugin-notice-types';
 
 const BUILTIN_TEMPLATES: Record<string, string> = {
-  notice_muted: 'Notice muted. Undo in settings.',
+  notice_muted: 'Notice muted.',
   notices_unmuted: 'Notices unmuted.',
 };
 
@@ -27,7 +27,7 @@ export class PluginNotices {
     const definition = this.catalog[id];
     const template = definition?.template ?? BUILTIN_TEMPLATES[id] ?? id;
     const timeout = opts?.timeout ?? definition?.timeout ?? 5000;
-    const immutable = definition?.immutable ?? false;
+    const immutable = definition?.immutable ?? id in BUILTIN_TEMPLATES;
     const message = this.interpolate(template, params ?? {});
     const fragment = buildNoticeFragment({
       id,
@@ -117,7 +117,10 @@ export class PluginNotices {
     try {
       await this.mute(id);
       this.remove(id);
-      this.show('notice_muted', {}, { timeout: 2000 });
+      this.show('notice_muted', {}, {
+        timeout: 4000,
+        button: { text: 'Undo', callback: () => void this.unmute(id) },
+      });
     } catch (error: unknown) {
       console.error(`[${this.prefix}] Failed to mute notice:`, error);
     }
