@@ -513,7 +513,7 @@ export class QmdSearchModal extends Modal {
 
 		const link = buildResultLink(this.plugin, relativePath);
 		markdownView.editor.replaceSelection(link);
-		this.plugin.notices.show('wikilink_inserted', { wikilink: link });
+		this.plugin.notices.show('wikilink_inserted', { name: this.plugin.getResultFallbackTitle(result) });
 	}
 
 	private renderInstructions(): void {
