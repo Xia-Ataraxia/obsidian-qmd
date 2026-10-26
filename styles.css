@@ -196,6 +196,9 @@
 .qmd-search-results,
 .qmd-related-results { display: grid; gap: 8px; }
 .qmd-search-results { max-height: min(56vh, 520px); overflow-y: auto; }
+/* Inset the list to the search icon's rhythm instead of the ring's outer edge. */
+.qmd-search-meta,
+.qmd-search-results { padding-inline: var(--size-4-3); }
 
 /* Shared Result Item */
 .qmd-result-item {
