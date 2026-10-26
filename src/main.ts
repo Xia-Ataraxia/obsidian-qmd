@@ -35,7 +35,7 @@ const NOTICE_CATALOG: NoticeCatalog = {
   resolve_error:          { template: 'Could not resolve {{ path }}.', timeout: 4000, immutable: true },
   wikilink_copied:        { template: 'Copied link.', timeout: 3000, immutable: true },
   wikilink_copy_failed:   { template: 'Failed to copy link.', timeout: 4000, immutable: true },
-  wikilink_inserted:      { template: 'Inserted {{ wikilink }}', timeout: 3000, immutable: true },
+  wikilink_inserted:      { template: 'Inserted link to {{ name }}.', timeout: 3000, immutable: true },
   no_active_editor:       { template: 'No active editor to insert link.', timeout: 4000, immutable: true },
 };
 
