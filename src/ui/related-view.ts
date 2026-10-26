@@ -99,6 +99,12 @@ export class QmdRelatedView extends ItemView {
 			return;
 		}
 
+		// Backend still resolving (e.g. right after load); refreshBackendState re-renders when done.
+		if (!this.plugin.activeCollection) {
+			this.renderSkeleton();
+			return;
+		}
+
 		if (!force) {
 			const cached = this.getCached(activeFile);
 			if (cached) {
