@@ -1,3 +1,4 @@
+import { homedir } from 'os';
 import { MarkdownView, Plugin, TAbstractFile, TFile, setTooltip } from 'obsidian';
 import { AutoSyncController } from './domain/auto-sync';
 import { VaultPathResolver } from './domain/path-resolver';
@@ -31,7 +32,7 @@ const NOTICE_CATALOG: NoticeCatalog = {
   embed_complete:         { template: 'Embeddings are up to date.', timeout: 4000 },
   embed_error:            { template: "Couldn't build embeddings. Try again.", timeout: 6000 },
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
-  resolve_error:          { template: 'Could not find "{{ name }}".', timeout: 4000, immutable: true },
+  resolve_error:          { template: 'Couldn\'t find "{{ name }}".', timeout: 4000, immutable: true },
   wikilink_copied:        { template: 'Copied link.', timeout: 3000, immutable: true },
   wikilink_copy_failed:   { template: 'Failed to copy link.', timeout: 4000, immutable: true },
   wikilink_inserted:      { template: 'Inserted link to {{ name }}.', timeout: 3000, immutable: true },
@@ -49,6 +50,7 @@ export default class QmdPlugin extends Plugin {
   readonly logger = new PluginLogger('QMD');
   private setupMessage: string | null = null;
   private statusBarEl?: HTMLElement;
+  private settingTab?: QmdSettingTab;
   private autoSync?: AutoSyncController;
   private pathResolver = new VaultPathResolver();
   private unloading = false;
@@ -78,15 +80,16 @@ export default class QmdPlugin extends Plugin {
     );
 
     this.registerHoverLinkSource(QMD_RELATED_VIEW_TYPE, {
-      display: 'QMD Related',
+      display: 'QMD related notes',
       defaultMod: true,
     });
     this.registerHoverLinkSource('qmd-search-modal', {
-      display: 'QMD Search',
+      display: 'QMD search',
       defaultMod: true,
     });
 
-    this.addSettingTab(new QmdSettingTab(this.app, this));
+    this.settingTab = new QmdSettingTab(this.app, this);
+    this.addSettingTab(this.settingTab);
     this.registerCommands();
     // Vault "create" fires for every existing file during startup; only watch changes after layout is ready.
     this.app.workspace.onLayoutReady(() => this.registerVaultWatchers());
@@ -190,9 +193,9 @@ export default class QmdPlugin extends Plugin {
     const autoDetect = configuredValue === '' || configuredValue.toLowerCase() === 'auto' || configuredValue === 'qmd';
     const nodeRuntime = this.adapter.getResolvedNodePath();
     const modeLabel = autoDetect ? 'Auto-detected' : 'Configured';
-    const nodeLabel = nodeRuntime ? ` via ${nodeRuntime}` : '';
+    const nodeLabel = nodeRuntime ? ` via ${tildify(nodeRuntime)}` : '';
 
-    return `${modeLabel} executable: ${resolvedBinary}${nodeLabel}`;
+    return `${modeLabel} executable: ${tildify(resolvedBinary)}${nodeLabel}`;
   }
 
   async refreshBackendState(showNotice = false): Promise<void> {
@@ -207,7 +210,7 @@ export default class QmdPlugin extends Plugin {
       if (!vaultPath) {
         this.collections = [];
         this.activeCollection = null;
-        this.setupMessage = 'Could not determine the current vault path.';
+        this.setupMessage = "Couldn't determine the vault folder.";
       } else {
         const resolved = await this.adapter.resolveCollectionForVault(vaultPath, this.settings.collectionOverride);
         this.collections = resolved.collections;
@@ -234,6 +237,7 @@ export default class QmdPlugin extends Plugin {
   }
 
   refreshStatusBar(): void {
+    this.settingTab?.renderBackendStatus();
     if (!this.statusBarEl) {
       return;
     }
@@ -465,7 +469,7 @@ export default class QmdPlugin extends Plugin {
     await this.refreshRelatedView();
   }
 
-  private async runSyncNow(): Promise<void> {
+  async runSyncNow(): Promise<void> {
     if (this.setupMessage) {
       this.notices.show('setup_error', { message: this.setupMessage });
       return;
@@ -540,4 +544,9 @@ export default class QmdPlugin extends Plugin {
     const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
     return editor?.getSelection().trim() ?? '';
   }
+}
+
+function tildify(filePath: string): string {
+  const home = homedir();
+  return filePath.startsWith(home) ? `~${filePath.slice(home.length)}` : filePath;
 }
