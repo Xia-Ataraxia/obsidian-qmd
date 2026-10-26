@@ -97,14 +97,7 @@ export class QmdRelatedView extends ItemView {
 		if (setupMessage) {
 			this.renderEmpty(setupMessage, 'alert-circle', {
 				label: 'Open settings',
-				onClick: () => {
-					(this.app as typeof this.app & {
-						setting?: { open?: () => void; openTabById?: (id: string) => void };
-					}).setting?.open?.();
-					(this.app as typeof this.app & {
-						setting?: { open?: () => void; openTabById?: (id: string) => void };
-					}).setting?.openTabById?.(this.plugin.manifest.id);
-				},
+				onClick: () => this.plugin.openSettings(),
 			});
 			return;
 		}

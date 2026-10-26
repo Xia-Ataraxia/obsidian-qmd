@@ -8,10 +8,10 @@ export const SEARCH_MODE_LABELS: Record<QmdSearchMode, string> = {
 };
 
 export const SEARCH_MODE_DESCRIPTIONS: Record<QmdSearchMode, string> = {
-	keyword: 'BM25 keyword search for exact terms',
-	semantic: 'Vector search for conceptual similarity',
-	hybrid: 'Combined keyword + semantic (recommended)',
-	advanced: 'Structured query with lex/vec/hyde fields',
+	keyword: 'Finds the exact words you type.',
+	semantic: 'Finds notes with a similar meaning.',
+	hybrid: 'Matches exact words and meaning together.',
+	advanced: 'Type plain text, or lex, vec, and hyde lines.',
 };
 
 export const DEFAULT_SETTINGS: QmdPluginSettings = {

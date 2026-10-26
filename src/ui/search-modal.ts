@@ -1,4 +1,4 @@
-import { type HoverPopover, MarkdownView, Menu, Modal, setIcon, setTooltip } from 'obsidian';
+import { type HoverPopover, MarkdownView, Menu, Modal, Platform, setIcon, setTooltip } from 'obsidian';
 import type QmdPlugin from '../main';
 import { SEARCH_MODE_DESCRIPTIONS, SEARCH_MODE_LABELS } from '../domain/settings';
 import { validateStructuredQueryDocument } from '../utils/parser';
@@ -8,6 +8,22 @@ import { buildResultLink } from './result-actions';
 
 const AUTO_SEARCH_DEBOUNCE_MS = 180;
 const SEARCH_MODE_ORDER: QmdSearchMode[] = ['keyword', 'semantic', 'hybrid', 'advanced'];
+const SEARCH_MODE_ICONS: Record<QmdSearchMode, string> = {
+	keyword: 'whole-word',
+	semantic: 'sparkles',
+	hybrid: 'combine',
+	advanced: 'braces',
+};
+const STRUCTURED_LINE_RE = /^\s*(lex|vec|hyde|intent):/im;
+const MOD_KEY = Platform.isMacOS ? '\u2318' : 'ctrl';
+const ALT_KEY = Platform.isMacOS ? '\u2325' : 'alt';
+const SHIFT_KEY = Platform.isMacOS ? '\u21e7' : 'shift';
+
+interface EmptyStateOptions {
+	icon?: string;
+	detail?: string;
+	action?: { label: string; onClick: () => void };
+}
 
 export class QmdSearchModal extends Modal {
 	hoverPopover: HoverPopover | null = null;
@@ -74,8 +90,10 @@ export class QmdSearchModal extends Modal {
 		this.queryInputEl = inputRow.createEl('input', {
 			type: 'text',
 			cls: 'qmd-search-input',
-			attr: { placeholder: 'Search your vault...' },
+			attr: { placeholder: 'Search your vault\u2026' },
 		});
+
+		inputRow.createSpan({ cls: 'qmd-advanced-hint', text: 'Structured query' });
 
 		this.modeIndicatorEl = inputRow.createEl('button', {
 			cls: 'qmd-mode-indicator',
@@ -97,12 +115,14 @@ export class QmdSearchModal extends Modal {
 		setIcon(this.clearBtnEl, 'x');
 		setTooltip(this.clearBtnEl, 'Clear search');
 		this.clearBtnEl.addEventListener('click', () => {
-			this.queryInputEl.value = '';
+			const input = this.activeInput();
+			input.value = '';
 			this.dirty = true;
 			this.results = [];
-			this.renderEmptyState('Type to search your vault...');
+			this.metaEl.empty();
+			this.renderIdleState();
 			this.updateClearButton();
-			this.queryInputEl.focus();
+			input.focus();
 		});
 
 		this.advancedPanelEl = contentEl.createDiv({ cls: 'qmd-advanced-panel' });
@@ -123,6 +143,11 @@ export class QmdSearchModal extends Modal {
 			},
 		});
 
+		const footer = this.advancedPanelEl.createDiv({ cls: 'qmd-advanced-footer' });
+		footer.createSpan({ cls: 'qmd-advanced-footer-hint', text: `${MOD_KEY} \u21b5 to run` });
+		const runBtn = footer.createEl('button', { cls: 'mod-cta', text: 'Run query', attr: { type: 'button' } });
+		runBtn.addEventListener('click', () => { void this.submitCurrentQuery(); });
+
 		this.metaEl = contentEl.createDiv({ cls: 'qmd-search-meta' });
 		this.resultsEl = contentEl.createDiv({ cls: 'qmd-search-results' });
 
@@ -138,6 +163,7 @@ export class QmdSearchModal extends Modal {
 
 		this.advancedInputEl.addEventListener('input', () => {
 			this.dirty = true;
+			this.updateClearButton();
 		});
 		this.advancedInputEl.addEventListener('keydown', (event) => this.handleAdvancedKeydown(event));
 
@@ -152,7 +178,7 @@ export class QmdSearchModal extends Modal {
 		if (this.initialQuery && this.mode !== 'advanced') {
 			this.scheduleSearch();
 		} else {
-			this.renderEmptyState('Type to search your vault...');
+			this.renderIdleState();
 		}
 	}
 
@@ -175,22 +201,26 @@ export class QmdSearchModal extends Modal {
 		if (labelEl) {
 			labelEl.textContent = SEARCH_MODE_LABELS[mode];
 		}
+		setTooltip(this.modeIndicatorEl, `${SEARCH_MODE_DESCRIPTIONS[mode]} Tab to switch.`);
 
 		this.advancedPanelEl.classList.toggle('is-visible', mode === 'advanced');
 		this.queryInputEl.classList.toggle('is-hidden', mode === 'advanced');
 
 		this.plugin.rememberSearchMode(mode);
 		this.renderInstructions();
+		this.updateClearButton();
 
-		if (mode === 'advanced') {
-			this.advancedInputEl.focus();
+		const input = this.activeInput();
+		input.focus();
+		// Results from another mode would answer a different query, so start fresh.
+		if (mode !== 'advanced' && input.value.trim()) {
+			this.scheduleSearch();
 			return;
 		}
-
-		this.queryInputEl.focus();
-		if (this.queryInputEl.value.trim()) {
-			this.scheduleSearch();
-		}
+		this.dirty = true;
+		this.results = [];
+		this.metaEl.empty();
+		this.renderIdleState();
 	}
 
 	private cycleMode(delta: number): void {
@@ -203,17 +233,22 @@ export class QmdSearchModal extends Modal {
 		const menu = new Menu();
 		for (const mode of SEARCH_MODE_ORDER) {
 			menu.addItem((item) => {
-				item.setTitle(`${SEARCH_MODE_LABELS[mode]}  —  ${SEARCH_MODE_DESCRIPTIONS[mode]}`);
+				item.setTitle(SEARCH_MODE_LABELS[mode]);
+				item.setIcon(SEARCH_MODE_ICONS[mode]);
 				item.setChecked(this.mode === mode);
 				item.onClick(() => this.setMode(mode));
 			});
 		}
 		const rect = this.modeIndicatorEl.getBoundingClientRect();
-		menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+		menu.showAtPosition({ x: rect.right, y: rect.bottom + 4, left: true });
+	}
+
+	private activeInput(): HTMLInputElement | HTMLTextAreaElement {
+		return this.mode === 'advanced' ? this.advancedInputEl : this.queryInputEl;
 	}
 
 	private updateClearButton(): void {
-		this.clearBtnEl.classList.toggle('is-visible', this.queryInputEl.value.length > 0);
+		this.clearBtnEl.classList.toggle('is-visible', this.activeInput().value.length > 0);
 	}
 
 	private scheduleSearch(): void {
@@ -267,6 +302,12 @@ export class QmdSearchModal extends Modal {
 	}
 
 	private handleAdvancedKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Tab') {
+			event.preventDefault();
+			this.cycleMode(event.shiftKey ? -1 : 1);
+			return;
+		}
+
 		if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
 			event.preventDefault();
 			void this.submitCurrentQuery();
@@ -333,16 +374,15 @@ export class QmdSearchModal extends Modal {
 	private submitCurrentQuery(): void {
 		const setupMessage = this.plugin.getSetupMessage();
 		if (setupMessage) {
-			this.plugin.notices.show('setup_error', { message: setupMessage });
-			this.metaEl.textContent = setupMessage;
+			this.renderSetupState(setupMessage);
 			return;
 		}
 
-		const rawQuery = this.mode === 'advanced' ? this.advancedInputEl.value : this.queryInputEl.value;
+		const rawQuery = this.activeInput().value;
 		const query = rawQuery.trim();
 		if (!query) {
 			this.results = [];
-			this.renderEmptyState('Type to search your vault...');
+			this.renderIdleState();
 			return;
 		}
 
@@ -353,20 +393,30 @@ export class QmdSearchModal extends Modal {
 
 		this.lastQueryText = query;
 
+		let mode = this.mode;
 		let normalizedQuery = query;
-		if (this.mode === 'advanced') {
-			const validation = validateStructuredQueryDocument(query);
-			if (!validation.valid || !validation.normalized) {
-				this.metaEl.textContent = validation.error ?? 'Invalid query document.';
-				this.renderEmptyState('Fix the structured query and run it again.');
-				return;
+		if (mode === 'advanced') {
+			if (!STRUCTURED_LINE_RE.test(query)) {
+				// Plain text in the custom box is still a search; don't make the user learn the syntax first.
+				mode = 'hybrid';
+				normalizedQuery = query.replace(/\s+/g, ' ');
+			} else {
+				const validation = validateStructuredQueryDocument(query);
+				if (!validation.valid || !validation.normalized) {
+					this.metaEl.empty();
+					this.renderEmptyState(validation.error ?? 'Invalid query document.', {
+						icon: 'alert-circle',
+						detail: 'Or drop the prefixes to search plain text.',
+					});
+					return;
+				}
+				normalizedQuery = validation.normalized;
 			}
-			normalizedQuery = validation.normalized;
 		}
 
 		this.latestTicket += 1;
 		this.queueSearchRequest({
-			mode: this.mode,
+			mode,
 			query: normalizedQuery,
 			ticket: this.latestTicket,
 		});
@@ -374,7 +424,8 @@ export class QmdSearchModal extends Modal {
 
 	private queueSearchRequest(request: { mode: QmdSearchMode; query: string; ticket: number }): void {
 		this.queuedRequest = request;
-		this.metaEl.textContent = `Searching ${SEARCH_MODE_LABELS[request.mode].toLowerCase()} results...`;
+		this.metaEl.textContent = `Searching ${SEARCH_MODE_LABELS[request.mode].toLowerCase()}\u2026`;
+		this.renderLoading();
 
 		if (this.searchInFlight) {
 			return;
@@ -394,7 +445,17 @@ export class QmdSearchModal extends Modal {
 
 		try {
 			const startedAt = performance.now();
-			const results = await this.plugin.search(request.mode, request.query);
+			let note = '';
+			let results: QmdSearchResult[];
+			try {
+				results = await this.plugin.search(request.mode, request.query);
+			} catch (error) {
+				if (request.mode !== 'semantic' && request.mode !== 'hybrid') throw error;
+				// Embeddings may be missing or stale; exact match still answers the question.
+				this.plugin.logger.warn(`${request.mode} search failed, falling back to keyword`, { error: String(error) });
+				results = await this.plugin.search('keyword', request.query);
+				note = `${SEARCH_MODE_LABELS[request.mode]} unavailable, showing exact matches`;
+			}
 
 			if (request.ticket !== this.latestTicket) {
 				return;
@@ -404,15 +465,23 @@ export class QmdSearchModal extends Modal {
 			this.results = results;
 			this.selectedIndex = 0;
 			const elapsedMs = Math.round(performance.now() - startedAt);
-			this.renderResults(results, elapsedMs);
+			this.renderResults(results, elapsedMs, note);
 		} catch (error) {
 			if (request.ticket !== this.latestTicket) {
 				return;
 			}
 
 			const message = error instanceof Error ? error.message : String(error);
-			this.metaEl.textContent = message;
-			this.renderEmptyState('Search failed.');
+			this.plugin.logger.error('Search failed', { error: message });
+			this.metaEl.empty();
+			this.results = [];
+			this.renderEmptyState('Search failed.', {
+				icon: 'alert-circle',
+				detail: /locked|busy/i.test(message)
+					? 'Search is busy. Try again in a moment.'
+					: "Couldn't reach the search index. Try again.",
+				action: { label: 'Try again', onClick: () => this.submitCurrentQuery() },
+			});
 		} finally {
 			this.searchInFlight = false;
 			if (this.queuedRequest) {
@@ -421,17 +490,25 @@ export class QmdSearchModal extends Modal {
 		}
 	}
 
-	private renderResults(results: QmdSearchResult[], elapsedMs: number): void {
+	private renderResults(results: QmdSearchResult[], elapsedMs: number, note = ''): void {
 		this.resultsEl.empty();
+		this.resultsEl.removeClass('is-loading');
 		this.resultEls = [];
+		const suffix = note ? ` \u00b7 ${note}` : '';
 
 		if (results.length === 0) {
-			this.metaEl.textContent = `No results in ${elapsedMs}ms.`;
-			this.renderEmptyState('No matching notes.');
+			this.metaEl.textContent = `No results \u00b7 ${elapsedMs}ms${suffix}`;
+			const canWiden = this.mode === 'keyword' || this.mode === 'semantic';
+			this.renderEmptyState('No matching notes.', {
+				icon: 'search-x',
+				action: canWiden ? { label: 'Try best of both', onClick: () => this.setMode('hybrid') } : undefined,
+			});
 			return;
 		}
 
-		this.metaEl.textContent = `${results.length} result${results.length === 1 ? '' : 's'} \u00b7 ${elapsedMs}ms`;
+		// Keyword hits have no score; drop the empty column rather than indent every title.
+		this.resultsEl.toggleClass('is-unscored', results.every((result) => result.score <= 0));
+		this.metaEl.textContent = `${results.length} result${results.length === 1 ? '' : 's'} \u00b7 ${elapsedMs}ms${suffix}`;
 
 		for (const [index, result] of results.entries()) {
 			const el = renderResultItem({
@@ -457,13 +534,56 @@ export class QmdSearchModal extends Modal {
 		this.refreshSelection();
 	}
 
-	private renderEmptyState(message: string): void {
+	private renderLoading(): void {
+		// Keep stale results in place but dimmed so the list doesn't jump while typing.
+		if (this.resultEls.length > 0) {
+			this.resultsEl.addClass('is-loading');
+			return;
+		}
 		this.resultsEl.empty();
+		const skeletonEl = this.resultsEl.createDiv({ cls: 'qmd-skeleton-container' });
+		for (let i = 0; i < 4; i++) {
+			const row = skeletonEl.createDiv({ cls: 'qmd-skeleton-row' });
+			row.createDiv({ cls: 'qmd-skeleton-score' });
+			const body = row.createDiv({ cls: 'qmd-skeleton-body' });
+			body.createDiv({ cls: 'qmd-skeleton-title' });
+			body.createDiv({ cls: 'qmd-skeleton-snippet' });
+		}
+	}
+
+	private renderIdleState(): void {
+		const setupMessage = this.plugin.getSetupMessage();
+		if (setupMessage) {
+			this.renderSetupState(setupMessage);
+			return;
+		}
+		this.renderEmptyState(SEARCH_MODE_DESCRIPTIONS[this.mode], { icon: SEARCH_MODE_ICONS[this.mode] });
+	}
+
+	private renderSetupState(message: string): void {
+		this.metaEl.empty();
+		this.results = [];
+		this.renderEmptyState(message, {
+			icon: 'alert-circle',
+			action: { label: 'Open settings', onClick: () => this.plugin.openSettings() },
+		});
+	}
+
+	private renderEmptyState(message: string, opts: EmptyStateOptions = {}): void {
+		this.resultsEl.empty();
+		this.resultsEl.removeClass('is-loading');
 		this.resultEls = [];
 		const stateEl = this.resultsEl.createDiv({ cls: 'qmd-state' });
 		const iconEl = stateEl.createDiv({ cls: 'qmd-state-icon' });
-		setIcon(iconEl, 'search');
+		setIcon(iconEl, opts.icon ?? 'search');
 		stateEl.createEl('p', { cls: 'qmd-state-text', text: message });
+		if (opts.detail) {
+			stateEl.createEl('p', { cls: 'qmd-state-detail', text: opts.detail });
+		}
+		if (opts.action) {
+			const { label, onClick } = opts.action;
+			stateEl.createEl('button', { text: label, attr: { type: 'button' } }).addEventListener('click', onClick);
+		}
 	}
 
 	private async openSelectedResult(target: QmdOpenTarget = 'current', keepOpen = false): Promise<void> {
@@ -520,17 +640,18 @@ export class QmdSearchModal extends Modal {
 		this.instructionsEl.empty();
 
 		this.createInstruction(this.instructionsEl, '\u2191\u2193', 'navigate');
+		this.createInstruction(this.instructionsEl, 'tab', 'switch mode');
 
 		if (this.mode === 'advanced') {
-			this.createInstruction(this.instructionsEl, 'cmd/ctrl+enter', 'run query');
+			this.createInstruction(this.instructionsEl, `${MOD_KEY} \u21b5`, 'run query');
 		} else {
-			this.createInstruction(this.instructionsEl, 'enter', 'open');
-			this.createInstruction(this.instructionsEl, 'cmd/ctrl+enter', 'new tab');
+			this.createInstruction(this.instructionsEl, '\u21b5', 'open');
+			this.createInstruction(this.instructionsEl, `${MOD_KEY} \u21b5`, 'new tab');
 		}
 
-		this.createInstruction(this.instructionsEl, 'alt+enter', 'split');
-		this.createInstruction(this.instructionsEl, 'alt+o', 'open, keep modal');
-		this.createInstruction(this.instructionsEl, 'shift+enter', 'insert link');
+		this.createInstruction(this.instructionsEl, `${ALT_KEY} \u21b5`, 'split');
+		this.createInstruction(this.instructionsEl, `${ALT_KEY} O`, 'open, keep modal');
+		this.createInstruction(this.instructionsEl, `${SHIFT_KEY} \u21b5`, 'insert link');
 	}
 
 	private createInstruction(container: HTMLDivElement, key: string, text: string): void {

@@ -73,6 +73,8 @@ describe('qmd parser helpers', () => {
 
   it('formats snippets for display', () => {
     expect(formatSnippet('@@ -1,2 @@\n\nHello   world')).toBe('Hello world');
+    expect(formatSnippet('# Daily\nMade coffee.', 'Daily')).toBe('Made coffee.');
+    expect(formatSnippet('## Brewing\nUse 18g.', 'Coffee')).toBe('Brewing Use 18g.');
   });
 
   it('validates structured query documents', () => {
@@ -88,7 +90,7 @@ describe('qmd parser helpers', () => {
 
     expect(validateStructuredQueryDocument('plain text\nvec: auth')).toEqual({
       valid: false,
-      error: 'Each line must start with lex:, vec:, hyde:, or intent:.',
+      error: 'Start each line with a type: lex, vec, hyde, or intent.',
     });
   });
 });
