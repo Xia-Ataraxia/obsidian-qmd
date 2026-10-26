@@ -58,7 +58,7 @@ export class QmdSettingTab extends PluginSettingTab {
           },
           {
             name: 'Collection override',
-            desc: 'Optional qmd collection name to use instead of the one matched to this vault.',
+            desc: 'QMD collection to use instead of the one matched to this vault.',
             control: { type: 'text', key: 'collectionOverride', placeholder: 'Auto-detect' },
           },
         ],
@@ -79,7 +79,7 @@ export class QmdSettingTab extends PluginSettingTab {
           },
           {
             name: 'Show mode selector',
-            desc: 'Display the search mode pill in the search modal.',
+            desc: 'Display the search mode selector in the search modal.',
             control: { type: 'toggle', key: 'showModeSelector' },
           },
           {
@@ -100,12 +100,12 @@ export class QmdSettingTab extends PluginSettingTab {
         items: [
           {
             name: 'Auto-sync',
-            desc: 'Run qmd update and qmd embed after vault changes.',
+            desc: 'Update the search index and embeddings after vault changes.',
             control: { type: 'toggle', key: 'autoSyncEnabled' },
           },
           {
             name: 'Auto-sync debounce (ms)',
-            desc: 'Wait time after the last change before running qmd update and qmd embed.',
+            desc: 'Wait time after the last change before syncing.',
             visible: () => this.plugin.settings.autoSyncEnabled,
             control: { type: 'number', key: 'autoSyncDebounceMs', placeholder: '7000', min: 1, step: 1 },
           },
