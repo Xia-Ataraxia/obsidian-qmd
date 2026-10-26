@@ -1,5 +1,5 @@
 import { homedir } from 'os';
-import { MarkdownView, Plugin, TAbstractFile, TFile, setTooltip } from 'obsidian';
+import { MarkdownView, Plugin, TAbstractFile, TFile, setTooltip, type WorkspaceLeaf } from 'obsidian';
 import { AutoSyncController } from './domain/auto-sync';
 import { resolveSlugPath } from './domain/path-resolver';
 import { parseLegacyData } from './domain/legacy-data';
@@ -50,6 +50,7 @@ export default class QmdPlugin extends Plugin {
   private settingTab?: QmdSettingTab;
   private autoSync?: AutoSyncController;
   private unloading = false;
+  private lastNoteLeaf: WorkspaceLeaf | null = null;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -87,6 +88,9 @@ export default class QmdPlugin extends Plugin {
     this.settingTab = new QmdSettingTab(this.app, this);
     this.addSettingTab(this.settingTab);
     this.registerCommands();
+    this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
+      if (leaf && this.isNoteLeaf(leaf)) this.lastNoteLeaf = leaf;
+    }));
     // Vault "create" fires for every existing file during startup; only watch changes after layout is ready.
     this.app.workspace.onLayoutReady(() => this.registerVaultWatchers());
 
@@ -197,6 +201,8 @@ export default class QmdPlugin extends Plugin {
   }
 
   async refreshBackendState(showNotice = false): Promise<void> {
+    // Persistent until the result below replaces it in place, so the user sees the re-scan start right away.
+    if (showNotice) this.notices.show('backend_status', { message: 'Re-scanning collections…' }, { timeout: 0 });
     const vaultPath = this.getVaultPath();
 
     this.adapter.setWorkingDirectory(vaultPath);
@@ -227,11 +233,8 @@ export default class QmdPlugin extends Plugin {
     }
 
     this.refreshStatusBar();
+    if (showNotice) this.notices.show('backend_status', { message: this.describeBackend() });
     await this.refreshRelatedView();
-
-    if (showNotice) {
-      this.notices.show('backend_status', { message: this.describeBackend() });
-    }
   }
 
   refreshStatusBar(): void {
@@ -338,6 +341,22 @@ export default class QmdPlugin extends Plugin {
     return mapped.split('/').pop()?.replace(/\.md$/, '') ?? result.file;
   }
 
+  // Most recent main-area leaf in any window. The related view is skipped: in a popout it can itself be the most recent leaf.
+  getRecentNoteLeaf(): WorkspaceLeaf | null {
+    const { workspace } = this.app;
+    return [this.lastNoteLeaf, workspace.getMostRecentLeaf(), workspace.getMostRecentLeaf(workspace.rootSplit)]
+      .find((candidate): candidate is WorkspaceLeaf => !!candidate && this.isNoteLeaf(candidate)) ?? null;
+  }
+
+  private isNoteLeaf(leaf: WorkspaceLeaf): boolean {
+    const { workspace } = this.app;
+    const root = leaf.getRoot();
+    return root !== workspace.leftSplit
+      && root !== workspace.rightSplit
+      && !(leaf.view instanceof QmdRelatedView)
+      && workspace.getLeavesOfType(leaf.view.getViewType()).includes(leaf);
+  }
+
   // Reports failures as notices so every caller (modal, related view, context menu) gets feedback.
   async openSearchResult(result: QmdSearchResult, target: QmdOpenTarget = 'current'): Promise<boolean> {
     const relativePath = this.toVaultRelativePath(result.file);
@@ -352,15 +371,12 @@ export default class QmdPlugin extends Plugin {
       return false;
     }
 
-    // In a popout the related view itself can be the most recent leaf; open in the main editor instead of over it.
     const { workspace } = this.app;
-    const recent = [workspace.getMostRecentLeaf(), workspace.getMostRecentLeaf(workspace.rootSplit)]
-      .find((candidate) => candidate && !(candidate.view instanceof QmdRelatedView));
     const leaf = target === 'tab'
       ? workspace.getLeaf('tab')
       : target === 'split'
         ? workspace.getLeaf('split')
-        : recent ?? workspace.getLeaf(false);
+        : this.getRecentNoteLeaf() ?? workspace.getLeaf(false);
 
     await leaf.openFile(abstractFile);
     return true;

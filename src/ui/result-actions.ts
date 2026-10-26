@@ -68,7 +68,7 @@ export function buildResultLink(plugin: QmdPlugin, relativePath: string): string
   return plugin.app.fileManager.generateMarkdownLink(file, sourcePath);
 }
 
-// Targets the most recent note editor, so it also works from the sidebar view where the active leaf isn't an editor.
+// Targets the most recent note editor, so it also works from the sidebar or a popout where the active leaf isn't an editor.
 export function insertResultLink(plugin: QmdPlugin, result: QmdSearchResult): void {
   const relativePath = plugin.toVaultRelativePath(result.file);
   if (!relativePath) {
@@ -76,7 +76,7 @@ export function insertResultLink(plugin: QmdPlugin, result: QmdSearchResult): vo
     return;
   }
 
-  const view = plugin.app.workspace.getMostRecentLeaf()?.view;
+  const view = plugin.getRecentNoteLeaf()?.view;
   if (!(view instanceof MarkdownView)) {
     plugin.notices.show('no_active_editor');
     return;
