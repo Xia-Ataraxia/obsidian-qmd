@@ -71,6 +71,46 @@ describe('QmdProcessAdapter', () => {
     expect((await adapter.resolveCollectionForVault('/Users/test/Other')).resolved).toBeNull();
   });
 
+  it('compares real paths on both sides only after a direct miss', async () => {
+    const realPaths: Record<string, string> = { '/Users/test/Link': '/Volumes/Data/Vault', '/Users/test/CollLink': '/Volumes/Data/Vault' };
+    const collectionFake = (collectionPath: string, pwd: (cwd: string) => string) =>
+      vi.fn(async (file: string, args: string[], options: { cwd?: string }) => {
+        if (file === '/bin/pwd') return { stdout: `${pwd(options.cwd ?? '')}\n`, stderr: '' };
+        if (args[1] === 'list') return { stdout: 'Collections (1):\n\nobsidian (qmd://obsidian/)\n', stderr: '' };
+        return { stdout: `Collection: obsidian\n  Path:     ${collectionPath}\n  Pattern:  **/*.md\n`, stderr: '' };
+      });
+    const pwdCalls = (fake: ReturnType<typeof collectionFake>) => fake.mock.calls.filter(([file]) => file === '/bin/pwd').length;
+    const follow = (cwd: string) => realPaths[cwd] ?? cwd;
+
+    const exact = collectionFake('/Users/test/Vault', follow);
+    expect((await new QmdProcessAdapter('/opt/qmd/bin/qmd', exact).resolveCollectionForVault('/Users/test/Vault')).resolved?.name).toBe('obsidian');
+    expect(pwdCalls(exact)).toBe(0);
+
+    const symlinkedCollection = collectionFake('/Users/test/CollLink', follow);
+    expect((await new QmdProcessAdapter('/opt/qmd/bin/qmd', symlinkedCollection).resolveCollectionForVault('/Volumes/Data/Vault')).resolved?.name).toBe('obsidian');
+
+    const pwdFails = collectionFake('/Volumes/Data/Vault', () => {
+      throw new Error('ENOENT');
+    });
+    expect((await new QmdProcessAdapter('/opt/qmd/bin/qmd', pwdFails).resolveCollectionForVault('/Users/test/Link')).resolved).toBeNull();
+
+    const elsewhere = collectionFake('/Volumes/Data/Other', follow);
+    const override = await new QmdProcessAdapter('/opt/qmd/bin/qmd', elsewhere).resolveCollectionForVault('/Users/test/Link', 'obsidian');
+    expect(override.resolved).toBeNull();
+    expect(override.error).toContain('belongs to another folder');
+  });
+
+  it('skips the realpath step when there are no collections', async () => {
+    const execFileAsync = vi.fn(async (file: string, args: string[], _options: { cwd?: string }) => ({
+      stdout: file === '/bin/pwd' || args[1] === 'list' ? 'Collections (0):\n' : '',
+      stderr: '',
+    }));
+    const resolved = await new QmdProcessAdapter('/opt/qmd/bin/qmd', execFileAsync).resolveCollectionForVault('/Users/test/Link');
+
+    expect(resolved.resolved).toBeNull();
+    expect(execFileAsync.mock.calls.some(([file]) => file === '/bin/pwd')).toBe(false);
+  });
+
   it('uses a configured path directly without asking the login shell', async () => {
     const execFileAsync = vi.fn(async (_file: string, _args: string[], _options: { env?: Record<string, string | undefined> }) => ({ stdout: '', stderr: '' }));
     const adapter = new QmdProcessAdapter('/opt/qmd/bin/qmd', execFileAsync);

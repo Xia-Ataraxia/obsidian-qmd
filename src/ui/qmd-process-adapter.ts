@@ -14,21 +14,24 @@ import { buildEmbedArgs, buildUpdateArgs } from '../utils/sync-args';
 type ExecFileAsync = (
   file: string,
   args: string[],
-  options: { encoding: 'utf8'; maxBuffer: number; cwd?: string; env?: Record<string, string | undefined> },
+  options: { encoding: 'utf8'; maxBuffer: number; cwd?: string; env?: Record<string, string | undefined>; timeout?: number },
 ) => Promise<{ stdout: string; stderr: string }>;
 
 const defaultExecFile = promisify(execFile) as ExecFileAsync;
 const SHELLS = ['/bin/zsh', '/bin/bash'];
+const REAL_PATH_TIMEOUT_MS = 5000;
 
 export class QmdProcessAdapter {
   private resolvedExecutablePath: string | null = null;
   // The GUI app's PATH is minimal; the login shell's PATH lets `#!/usr/bin/env node` scripts find node.
   private loginShellPath: string | null = null;
   private workingDirectory: string | null = null;
+  private realPathUnavailableLogged = false;
 
   constructor(
     private executablePath: string,
     private readonly execFileAsync: ExecFileAsync = defaultExecFile,
+    private readonly debug: (message: string) => void = () => {},
   ) {}
 
   setExecutablePath(value: string): void {
@@ -64,15 +67,6 @@ export class QmdProcessAdapter {
     overrideName?: string,
   ): Promise<{ collections: QmdCollectionInfo[]; resolved: QmdCollectionInfo | null; error?: string }> {
     const collections = await this.getCollections();
-    const normalizedVaultPath = normalizeFsPath(vaultPath);
-    // qmd stores collection paths with symlinks resolved, so a vault opened through a symlink only matches by its real path.
-    const realVaultPath = collections.some((collection) => normalizeFsPath(collection.path) === normalizedVaultPath)
-      ? null
-      : await this.resolveRealDirectory(vaultPath);
-    const isVaultPath = (value: string): boolean => {
-      const normalized = normalizeFsPath(value);
-      return normalized === normalizedVaultPath || normalized === realVaultPath;
-    };
 
     if (collections.length === 0) {
       return {
@@ -92,7 +86,7 @@ export class QmdProcessAdapter {
         };
       }
 
-      if (!isVaultPath(selected.path)) {
+      if (!(await this.findVaultCollection([selected], vaultPath))) {
         return {
           collections,
           resolved: null,
@@ -103,7 +97,7 @@ export class QmdProcessAdapter {
       return { collections, resolved: selected };
     }
 
-    const matched = collections.find((collection) => isVaultPath(collection.path));
+    const matched = await this.findVaultCollection(collections, vaultPath);
     if (!matched) {
       return {
         collections,
@@ -229,6 +223,32 @@ export class QmdProcessAdapter {
     return null;
   }
 
+  // A vault or collection reached through a symlink only matches on real paths, so compare those after a direct miss.
+  private async findVaultCollection(
+    candidates: QmdCollectionInfo[],
+    vaultPath: string,
+  ): Promise<QmdCollectionInfo | undefined> {
+    const normalizedVaultPath = normalizeFsPath(vaultPath);
+    const direct = candidates.find((collection) => normalizeFsPath(collection.path) === normalizedVaultPath);
+    if (direct || candidates.length === 0) return direct;
+
+    if (process.platform === 'win32') {
+      if (!this.realPathUnavailableLogged) {
+        this.realPathUnavailableLogged = true;
+        this.debug('real-path fallback unavailable on this platform');
+      }
+      return undefined;
+    }
+
+    const realVaultPath = await this.resolveRealDirectory(vaultPath);
+    if (!realVaultPath) return undefined;
+
+    for (const collection of candidates) {
+      if ((await this.resolveRealDirectory(collection.path)) === realVaultPath) return collection;
+    }
+    return undefined;
+  }
+
   // `pwd -P` prints the directory with symlinks resolved, without reading the filesystem from the plugin.
   private async resolveRealDirectory(directory: string): Promise<string | null> {
     try {
@@ -236,6 +256,7 @@ export class QmdProcessAdapter {
         encoding: 'utf8',
         maxBuffer: 1024 * 1024,
         cwd: directory,
+        timeout: REAL_PATH_TIMEOUT_MS,
       });
       return stdout.trim() ? normalizeFsPath(stdout.trim()) : null;
     } catch {
