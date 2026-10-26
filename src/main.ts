@@ -32,7 +32,7 @@ const NOTICE_CATALOG: NoticeCatalog = {
   embed_complete:         { template: 'Embeddings are up to date.', timeout: 4000 },
   embed_error:            { template: "Couldn't build embeddings. Try again.", timeout: 6000 },
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
-  resolve_error:          { template: 'Could not find "{{ name }}".', timeout: 4000, immutable: true },
+  resolve_error:          { template: 'Couldn\'t find "{{ name }}".', timeout: 4000, immutable: true },
   wikilink_copied:        { template: 'Copied link.', timeout: 3000, immutable: true },
   wikilink_copy_failed:   { template: 'Failed to copy link.', timeout: 4000, immutable: true },
   wikilink_inserted:      { template: 'Inserted link to {{ name }}.', timeout: 3000, immutable: true },
@@ -210,7 +210,7 @@ export default class QmdPlugin extends Plugin {
       if (!vaultPath) {
         this.collections = [];
         this.activeCollection = null;
-        this.setupMessage = 'Could not determine the current vault path.';
+        this.setupMessage = "Couldn't determine the vault folder.";
       } else {
         const resolved = await this.adapter.resolveCollectionForVault(vaultPath, this.settings.collectionOverride);
         this.collections = resolved.collections;

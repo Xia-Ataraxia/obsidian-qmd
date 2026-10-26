@@ -100,10 +100,10 @@
 .qmd-search-input-row {
 	display: grid;
 	grid-template-columns: 20px minmax(0, 1fr) auto auto;
-	gap: 10px;
+	gap: var(--size-4-2);
 	align-items: center;
 	min-height: 46px;
-	padding: var(--size-4-3) 14px;
+	padding: var(--size-4-3);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-l);
 	background: var(--background-primary);
@@ -138,7 +138,7 @@
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-1);
-	padding: var(--size-4-1) 10px;
+	padding: var(--size-4-1) var(--size-4-2);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 999px;
 	background: var(--background-primary);
@@ -373,7 +373,7 @@
 }
 
 /* Instructions */
-.qmd-search-instructions { justify-content: flex-start; flex-wrap: wrap; padding-top: var(--size-4-1); gap: 10px; }
+.qmd-search-instructions { justify-content: flex-start; flex-wrap: wrap; padding-top: var(--size-4-1); gap: var(--size-4-2); }
 
 /* Animations */
 @keyframes qmd-item-in { from { opacity: 0; transform: translateY(4px); } }

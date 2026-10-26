@@ -185,18 +185,13 @@ export class QmdSettingTab extends PluginSettingTab {
     this.backendSetting.setDesc(createFragment((frag) => {
       const line = frag.createDiv({ cls: `qmd-backend-status is-${tone}` });
       setIcon(line.createSpan({ cls: 'qmd-backend-status-icon' }), TONE_ICONS[tone]);
-      line.createSpan({ text: tone === 'busy' || tone === 'error' ? this.describeSync() : this.plugin.describeBackend() });
+      line.createSpan({ text: tone === 'busy' || tone === 'error' ? this.plugin.syncState.message : this.plugin.describeBackend() });
       frag.createDiv({ cls: 'qmd-backend-detail', text: this.plugin.describeExecutableResolution() });
     }));
     if (this.syncButton) {
       this.syncButton.disabled = tone === 'warning' || tone === 'busy';
       this.syncButton.setText(tone === 'busy' ? 'Syncing…' : 'Sync now');
     }
-  }
-
-  private describeSync(): string {
-    const { syncState } = this.plugin;
-    return syncState.phase === 'error' ? syncState.error ?? syncState.message : syncState.message;
   }
 
   private getBackendTone(): BackendTone {

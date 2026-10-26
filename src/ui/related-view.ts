@@ -133,7 +133,7 @@ export class QmdRelatedView extends ItemView {
 
 			this.plugin.logger.error('Failed to find related notes', error);
 			this.renderShell(activeFile);
-			this.renderEmpty('Could not find related notes.', 'alert-circle', {
+			this.renderEmpty("Couldn't load related notes.", 'alert-circle', {
 				label: 'Try again',
 				onClick: () => { void this.renderView(true); },
 			});
