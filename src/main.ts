@@ -24,7 +24,6 @@ import type { NoticeCatalog, PluginNoticesHost } from './ui/plugin-notice-types'
 
 const NOTICE_CATALOG: NoticeCatalog = {
   backend_status:         { template: '{{ message }}', timeout: 5000 },
-  setup_error:            { template: '{{ message }}', timeout: 5000 },
   sync_complete:          { template: 'Search index is up to date.', timeout: 4000 },
   sync_error:             { template: "Couldn't sync the search index. Try again.", timeout: 6000 },
   update_complete:        { template: 'Search index updated.', timeout: 4000 },
@@ -34,7 +33,7 @@ const NOTICE_CATALOG: NoticeCatalog = {
   vault_map_error:        { template: 'Search result does not map to the current vault.', timeout: 4000, immutable: true },
   resolve_error:          { template: 'Couldn\'t find "{{ name }}".', timeout: 4000, immutable: true },
   wikilink_copied:        { template: 'Copied link.', timeout: 3000, immutable: true },
-  wikilink_copy_failed:   { template: 'Failed to copy link.', timeout: 4000, immutable: true },
+  wikilink_copy_failed:   { template: "Couldn't copy the link.", timeout: 4000, immutable: true },
   wikilink_inserted:      { template: 'Inserted link to {{ name }}.', timeout: 3000, immutable: true },
   no_active_editor:       { template: 'No active editor to insert link.', timeout: 4000, immutable: true },
 };
@@ -470,8 +469,9 @@ export default class QmdPlugin extends Plugin {
   }
 
   async runSyncNow(): Promise<void> {
+    // Syncing can only fail until setup is fixed, so go where the fix is.
     if (this.setupMessage) {
-      this.notices.show('setup_error', { message: this.setupMessage });
+      this.openSettings();
       return;
     }
 
