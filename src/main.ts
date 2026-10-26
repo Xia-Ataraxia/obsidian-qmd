@@ -320,7 +320,7 @@ export default class QmdPlugin extends Plugin {
       return null;
     }
 
-    this.pathResolver.rebuildIfDirty(this.app.vault.getFiles());
+    this.pathResolver.rebuildIfDirty(() => this.app.vault.getFiles());
     if (this.pathResolver.isAmbiguous(slugified)) {
       return null;
     }
@@ -428,19 +428,19 @@ export default class QmdPlugin extends Plugin {
 
     this.registerEvent(
       this.app.vault.on('create', (file) => {
-        this.handleVaultMutation(file);
+        this.handleVaultMutation(file, true);
       }),
     );
 
     this.registerEvent(
       this.app.vault.on('rename', (file) => {
-        this.handleVaultMutation(file);
+        this.handleVaultMutation(file, true);
       }),
     );
 
     this.registerEvent(
       this.app.vault.on('delete', (file) => {
-        this.handleVaultMutation(file);
+        this.handleVaultMutation(file, true);
       }),
     );
 
@@ -451,12 +451,13 @@ export default class QmdPlugin extends Plugin {
     );
   }
 
-  private handleVaultMutation(file: TAbstractFile | null): void {
+  // Content edits don't change paths, so only create/rename/delete re-list the vault for result mapping.
+  private handleVaultMutation(file: TAbstractFile | null, pathChanged = false): void {
     if (!(file instanceof TFile) || file.extension !== 'md') {
       return;
     }
 
-    this.pathResolver.markDirty();
+    if (pathChanged) this.pathResolver.markDirty();
     this.autoSync?.markDirty();
   }
 

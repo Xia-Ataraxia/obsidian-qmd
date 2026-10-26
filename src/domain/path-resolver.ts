@@ -77,9 +77,10 @@ export class VaultPathResolver {
 		this.dirty = false;
 	}
 
-	rebuildIfDirty(files: FileRef[]): void {
+	// Lazy so a clean map never re-lists the vault.
+	rebuildIfDirty(listFiles: () => FileRef[]): void {
 		if (this.dirty) {
-			this.rebuild(files);
+			this.rebuild(listFiles());
 		}
 	}
 
