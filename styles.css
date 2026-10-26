@@ -33,56 +33,45 @@
 }
 
 /* Plugin notices */
-.plugin-notice {
+.qmd-notice {
 	display: grid;
-	gap: var(--size-2-3);
+	gap: var(--size-4-1);
 }
 
-.plugin-notice-head {
+.qmd-notice-head {
 	margin: 0;
-	font-size: var(--font-smallest);
-	font-weight: 700;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	opacity: 0.7;
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-semibold);
 }
 
-.plugin-notice-content {
-	margin: 0;
-	line-height: 1.45;
-}
-
-.plugin-notice-actions {
+.qmd-notice-row {
 	display: flex;
-	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: var(--size-4-2);
+}
+
+.qmd-notice-content {
+	flex: 1 1 auto;
+	margin: 0;
+	line-height: var(--line-height-normal);
+}
+
+.qmd-notice-mute {
+	flex: 0 0 auto;
+	margin-block: calc(var(--size-2-2) * -1);
+	color: inherit;
+}
+
+.qmd-notice-actions {
+	display: flex;
 	gap: var(--size-2-3);
+	margin-inline-start: calc(var(--size-4-2) * -1);
 }
 
-.plugin-notice-btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: var(--size-2-2);
-	padding: var(--size-2-2) var(--size-4-3);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 999px;
-	background: var(--background-secondary);
-	color: var(--text-normal);
-	cursor: pointer;
-}
-
-.plugin-notice-btn:hover,
-.plugin-notice-btn:focus-visible {
-	background: var(--background-modifier-hover);
-}
-
-.plugin-notice-btn--mute {
-	padding-inline: var(--size-4-2);
-}
-
-.plugin-notice-btn--mute svg {
-	width: var(--icon-s);
-	height: var(--icon-s);
+.qmd-notice-action {
+	color: var(--text-accent);
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-medium);
 }
 
 /* Search Modal */

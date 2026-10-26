@@ -18,7 +18,7 @@ export class PluginNotices {
   constructor(
     private readonly plugin: PluginNoticesHost,
     private readonly catalog: NoticeCatalog,
-    private readonly prefix: string,
+    private readonly title: string,
   ) {}
 
   show(id: string, params?: Record<string, unknown>, opts?: NoticeShowOptions): Notice | null {
@@ -31,7 +31,7 @@ export class PluginNotices {
     const message = this.interpolate(template, params ?? {});
     const fragment = buildNoticeFragment({
       id,
-      prefix: this.prefix,
+      title: this.title,
       text: message,
       immutable,
       button: opts?.button
@@ -122,7 +122,7 @@ export class PluginNotices {
         button: { text: 'Undo', callback: () => void this.unmute(id) },
       });
     } catch (error: unknown) {
-      console.error(`[${this.prefix}] Failed to mute notice:`, error);
+      console.error(`[${this.title}] Failed to mute notice:`, error);
     }
   }
 

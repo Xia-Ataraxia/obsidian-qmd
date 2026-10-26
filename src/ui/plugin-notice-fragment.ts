@@ -2,7 +2,7 @@ import { setIcon, setTooltip } from 'obsidian';
 
 interface BuildNoticeFragmentOptions {
   id: string;
-  prefix: string;
+  title: string;
   text: string;
   immutable: boolean;
   button?: { text: string; callback: () => void };
@@ -11,39 +11,25 @@ interface BuildNoticeFragmentOptions {
 
 export function buildNoticeFragment(opts: BuildNoticeFragmentOptions): DocumentFragment {
   const fragment = createFragment();
-  const wrapper = createDiv({ cls: 'plugin-notice' });
+  const wrapper = fragment.createDiv({ cls: 'qmd-notice' });
 
-  wrapper.appendChild(createEl('p', { cls: 'plugin-notice-head', text: `[${opts.prefix}]` }));
-  wrapper.appendChild(createEl('p', { cls: 'plugin-notice-content', text: opts.text }));
-
-  const actions = createDiv({ cls: 'plugin-notice-actions' });
-
-  if (opts.button?.text && typeof opts.button.callback === 'function') {
-    actions.appendChild(createActionButton(opts.button.text, opts.button.callback));
-  }
+  wrapper.createEl('p', { cls: 'qmd-notice-head', text: opts.title });
+  const row = wrapper.createDiv({ cls: 'qmd-notice-row' });
+  row.createEl('p', { cls: 'qmd-notice-content', text: opts.text });
 
   if (!opts.immutable) {
-    actions.appendChild(createMuteButton(opts.id, opts.onMute));
+    const mute = row.createEl('button', { cls: 'clickable-icon qmd-notice-mute', type: 'button' });
+    setIcon(mute, 'bell-off');
+    setTooltip(mute, 'Mute this notice');
+    mute.addEventListener('click', () => opts.onMute(opts.id));
   }
 
-  if (actions.childElementCount > 0) {
-    wrapper.appendChild(actions);
+  if (opts.button?.text && typeof opts.button.callback === 'function') {
+    const action = wrapper
+      .createDiv({ cls: 'qmd-notice-actions' })
+      .createEl('button', { cls: 'clickable-icon qmd-notice-action', type: 'button', text: opts.button.text });
+    action.addEventListener('click', opts.button.callback);
   }
 
-  fragment.appendChild(wrapper);
   return fragment;
-}
-
-function createActionButton(text: string, callback: () => void): HTMLButtonElement {
-  const button = createEl('button', { cls: 'plugin-notice-btn', type: 'button', text });
-  button.addEventListener('click', callback);
-  return button;
-}
-
-function createMuteButton(id: string, onMute: (id: string) => void): HTMLButtonElement {
-  const button = createEl('button', { cls: 'plugin-notice-btn plugin-notice-btn--mute', type: 'button' });
-  setTooltip(button, 'Mute this notice');
-  setIcon(button, 'bell-off');
-  button.addEventListener('click', () => onMute(id));
-  return button;
 }
